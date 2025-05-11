@@ -13,6 +13,15 @@
 #include <iomanip> // For setw
 #include <cstdlib> // For random number generation
 #include <ctime>   // For seeding the random number generator
+#ifdef _WIN32
+    #include <direct.h> // For _getcwd on Windows
+    #include <windows.h> // For LoadLibrary and GetLastError
+    #define GetCurrentDir _getcwd
+#else
+    #include <unistd.h> // For getcwd on Unix
+    #define GetCurrentDir getcwd
+#endif
+#include "database.h"
 
 using namespace std;
 
@@ -86,6 +95,9 @@ struct Staff
     bool isPresent; // true = present, false = absent
 };
 
+// Initialize the database
+Database db("hospital.db");
+
 // Functions used in appiontment scheduling
 void initialSlots()
 {
@@ -134,8 +146,11 @@ bool isStrongPassword(const string &password)
 // Function to register a new user
 void registerUser(int userId, const string &name, const string &password, const string &role)
 {
-    userCredentials[userId] = make_pair(name, make_pair(password, role));
-    cout << "User " << name << " (" << role << ") registered successfully with ID: " << userId << endl;
+    if (db.addUser(userId, name, password, role)) {
+        cout << "User " << name << " (" << role << ") registered successfully with ID: " << userId << endl;
+    } else {
+        cout << "Failed to register user." << endl;
+    }
 }
 
 // Function to get user input for registration
@@ -172,7 +187,7 @@ a:
 // Function to authenticate a user
 bool authenticate(int userId, const string &password)
 {
-    return userCredentials.count(userId) && userCredentials[userId].second.first == password;
+    return db.authenticateUser(userId, password);
 }
 
 // Function to login user
@@ -505,6 +520,7 @@ a:
             cout << "Patient with the name \"" << name << "\" not found.\n";
             goto d;
         }
+        
     }
 }
 
@@ -528,21 +544,28 @@ void displayPatients()
 void search()
 {
     cout << "Enter the name of the patient: ";
+    cin.ignore(); // Move this before getline
     getline(cin, name);
-    cin.ignore();
+    
+    bool found = false; // Add flag to check if patient was found
     for (int i = 0; i < num; i++)
     {
         if (name == pname[i])
         {
+            found = true;
             cout << "\n=== Patient Medical Records ===\n";
-            cout << left << setw(20) << "Name" << setw(10) << "Gender" << setw(20) << "ID" << setw(10) << "Age" << setw(10) << "Weight" << setw(10) << "Height" << setw(20) << "Medical history" << "\n";
+            cout << left << setw(20) << "Name" << setw(10) << "Gender" << setw(15) << "ID" << setw(10) << "Age" << setw(10) << "Weight" << setw(10) << "Height" << setw(20) << "Medical history" << "\n";
             cout << string(95, '-') << "\n";
             cout << left << setw(20) << pname[i]
                  << setw(10) << gender[i]
-                 << setw(20) << pid[i]
+                 << setw(15) << pid[i] // Fix width to match header
                  << setw(10) << age[i] << setw(10) << setprecision(2) << weight[i] << setw(10) << setprecision(2) << height[i] << setw(20) << fixed << p_discription[i] << "\n";
             break;
         }
+    }
+    
+    if (!found) {
+        cout << "Patient with name \"" << name << "\" not found.\n";
     }
 }
 
@@ -827,11 +850,62 @@ i:
 
 int main()
 {
+    // Use time() to seed the random number generator
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
-    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+    // Create full path for database
+    std::string dbPath = "hospital.db";
+    
+    // Print working directory for debugging
+    char cwd[1024];
+    if (GetCurrentDir(cwd, sizeof(cwd)) != NULL) {
+        std::cout << "Current working directory: " << cwd << std::endl;
+        std::cout << "Database will be created at: " << cwd << "\\" << dbPath << std::endl;
+        std::cout << "Looking for SQLite DLL in: " << cwd << "\\sqlite" << std::endl;
+    } else {
+        std::cerr << "Could not get current working directory" << std::endl;
+    }
+    
+    // Try to load SQLite library explicitly
+    #ifdef _WIN32
+    HMODULE hDll = LoadLibrary("sqlite3.dll");
+    if (!hDll) {
+        std::cerr << "Failed to load sqlite3.dll. Error code: " << GetLastError() << std::endl;
+        hDll = LoadLibrary("sqlite\\sqlite3.dll");
+        if (!hDll) {
+            std::cerr << "Failed to load sqlite\\sqlite3.dll. Error code: " << GetLastError() << std::endl;
+            std::cout << "Press any key to exit...";
+            std::cin.get();
+            return 1;
+        } else {
+            std::cout << "Successfully loaded sqlite\\sqlite3.dll" << std::endl;
+        }
+    } else {
+        std::cout << "Successfully loaded sqlite3.dll" << std::endl;
+    }
+    #endif
+    
+    // Open database connection
+    Database db(dbPath);
+    if (!db.open()) {
+        std::cerr << "Failed to open database. Exiting..." << std::endl;
+        std::cout << "Press any key to exit...";
+        std::cin.get();
+        return 1;
+    }
 
-    initialSlots(); // Initialize appointment slots
+    std::cout << "Database opened successfully!" << std::endl;
 
+    // Initialize appointment slots
+    if (!db.initializeAppointmentSlots()) {
+        std::cerr << "Failed to initialize appointment slots. Exiting..." << std::endl;
+        std::cout << "Press any key to exit...";
+        std::cin.get();
+        return 1;
+    }
+
+    std::cout << "Appointment slots initialized successfully!" << std::endl;
+    
     // Title
     cout << setfill('=') << setw(displayWidth) << "=" << endl;
     cout << setfill(' ')
@@ -890,3 +964,15 @@ int main()
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
