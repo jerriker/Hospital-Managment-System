@@ -180,11 +180,14 @@ a:
         // use idGenerator function
         userId = rand() % 9000 + 1000; // Generate a unique 4-digit ID
     } while (userCredentials.count(userId));
+    
 
     registerUser(userId, name, password, role);
 }
 
+
 // Function to authenticate a user
+
 bool authenticate(int userId, const string &password)
 {
     return db.authenticateUser(userId, password);
