@@ -93,7 +93,7 @@ void addPatient()
         }
         catch (sql::SQLException& e)
         {
-            std::cerr << "Error inserting patient " << (i + 1) << ": "
+            cerr << "Error inserting patient " << (i + 1) << ": "
                 << e.what() << "\n";
         }
     }
