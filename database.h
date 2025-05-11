@@ -46,6 +46,12 @@ public:
     bool addStaff(const std::string& name);
     bool markAttendance(const std::string& name, bool isPresent);
     bool getStaffAttendance();
+    
+    // Add this to your public methods
+    bool reopenDatabase();
+    bool checkDatabaseFile();
 };
 
 #endif // DATABASE_H
+
+

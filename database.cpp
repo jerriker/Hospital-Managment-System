@@ -61,7 +61,7 @@ bool Database::open() {
         std::cerr << "Failed to create one or more tables." << std::endl;
         return false;
     }
-    
+
     std::cout << "Database tables created/verified successfully." << std::endl;
     return true;
 }
@@ -117,6 +117,38 @@ bool Database::authenticateUser(int userId, const std::string& password) {
     return true;
 }
 
+std::string Database::getUserRole(int userId) {
+    std::string role = "";
+    std::string query = "SELECT role FROM users WHERE user_id = " + std::to_string(userId);
+    
+    auto roleCallback = [](void* data, int argc, char** argv, char** azColName) -> int {
+        std::string* role = static_cast<std::string*>(data);
+        if (argc > 0 && argv[0]) {
+            *role = argv[0];
+        }
+        return 0;
+    };
+    
+    executeQueryWithCallback(query, roleCallback, &role);
+    return role;
+}
+
+std::string Database::getUserName(int userId) {
+    std::string name = "";
+    std::string query = "SELECT name FROM users WHERE user_id = " + std::to_string(userId);
+    
+    auto nameCallback = [](void* data, int argc, char** argv, char** azColName) -> int {
+        std::string* name = static_cast<std::string*>(data);
+        if (argc > 0 && argv[0]) {
+            *name = argv[0];
+        }
+        return 0;
+    };
+    
+    executeQueryWithCallback(query, nameCallback, &name);
+    return name;
+}
+
 // Implementation for initializeAppointmentSlots method
 bool Database::initializeAppointmentSlots() {
     // First, clear any existing appointments
@@ -161,9 +193,33 @@ bool Database::cancelAppointment(int appointmentId) {
     return executeQuery(query);
 }
 
+bool Database::reopenDatabase() {
+    // Close the database if it's open
+    if (db) {
+        sqlite3_close(db);
+        db = nullptr;
+    }
+    
+    // Reopen the database
+    int rc = sqlite3_open(dbPath.c_str(), &db);
+    if (rc) {
+        std::cerr << "Can't reopen database: " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+    
+    std::cout << "Database reopened successfully." << std::endl;
+    return true;
+}
 
-
-
-
+// Implementation for checkDatabaseFile method
+bool Database::checkDatabaseFile() {
+    if (!db) {
+        std::cerr << "Database connection is not open" << std::endl;
+        return false;
+    }
+    
+    // Check if we can execute a simple query
+    return executeQuery("SELECT 1");
+}
 
 

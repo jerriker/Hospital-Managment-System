@@ -1,4 +1,5 @@
-/**Project title: Hospital management system
+/**
+ * Project title: Hospital management system
  * These project is done by the following group members with collaboration using github:
  * 1. Bereket Desalegn   ID: ETS0251/16
  * 2. Bekam Yoseph       ID: ETS0240/16
@@ -14,50 +15,46 @@
 #include <cstdlib> // For random number generation
 #include <ctime>   // For seeding the random number generator
 #ifdef _WIN32
-    #include <direct.h> // For _getcwd on Windows
-    #include <windows.h> // For LoadLibrary and GetLastError
-    #define GetCurrentDir _getcwd
+#include <direct.h>  // For _getcwd on Windows
+#include <windows.h> // For LoadLibrary and GetLastError
+#define GetCurrentDir _getcwd
 #else
-    #include <unistd.h> // For getcwd on Unix
-    #define GetCurrentDir getcwd
+#include <unistd.h> // For getcwd on Unix
+#define GetCurrentDir getcwd
 #endif
 #include "database.h"
 
 using namespace std;
 
-// Displays the admin panel interface.
+// Global database object
+Database* g_db = nullptr;
+const string dbPath = "hospital.db";
+
+// Function declarations
 void adminPanel();
-
-// Displays the patient panel interface.
 void patientPanel();
-
-// Functions used in user authentication
 bool isStrongPassword(const string &password);
 bool authenticate(int userId, const string &password);
 void registerUser(int userId, const string &name, const string &password, const string &role);
 void loginUser();
 void registerNewUser();
-
-// Functions used in patient management
 void patientManagement();
-void add();             // Add new patients
-void updatePatient();   // Update patient information
-void displayPatients(); // Display all patients' information
-void search();          // To display the patient's information by searching its name
-
-// Functions used in appiontment scheduling
-void bookAppointment();           // Book an appiontment by entering patient name and slot number
-void cancelAppointment();         // Cancel an appointment by clearing slots
-void displayAppointments();       // Display all appointment slots and their status (booked or available).
-void displayBookedAppointments(); // Display all booked appointments for the admin
-
-// Functions used in staff management
+void add();
+void updatePatient();
+void displayPatients();
+void search();
+void bookAppointment();
+void cancelAppointment();
+void displayAppointments();
+void displayBookedAppointments();
 void staffManagement();
 void markAttendance(struct Staff staffList[], int size, const string &name, bool status);
 void displayAttendance(const Staff staffList[], int size);
+void initialSlots();
+int idGenerator();
 
-    // variables
-int choice;              // Global variable to store user choice
+// Global variables
+int choice;                  // Global variable to store user choice
 const int displayWidth = 60; // Set display width for the design
 
 // variable for patient management
@@ -78,7 +75,8 @@ const int appointmentsPerDay = 10;
 string slots[daysInWeek][appointmentsPerDay];
 const string daysOfWeek[daysInWeek] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 const string times[appointmentsPerDay] = {"09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM"};
-// const and structure for appointment scheduling
+
+// structure for appointment scheduling
 struct Appointment
 {
     int id;
@@ -86,19 +84,15 @@ struct Appointment
 };
 Appointment appointments[daysInWeek][appointmentsPerDay];
 
-// const and structure for staff attendance
+// structure for staff attendance
 const int MAX_STAFF = 10;
-
 struct Staff
 {
     string name;
     bool isPresent; // true = present, false = absent
 };
 
-// Initialize the database
-Database db("hospital.db");
-
-// Functions used in appiontment scheduling
+// Functions used in appointment scheduling
 void initialSlots()
 {
     for (int day = 0; day < daysInWeek; ++day)
@@ -112,7 +106,6 @@ void initialSlots()
 }
 
 // Generates a random ID for the patient between 1-9999
-
 int idGenerator()
 {
     return rand() % 10000 + 1;
@@ -146,9 +139,12 @@ bool isStrongPassword(const string &password)
 // Function to register a new user
 void registerUser(int userId, const string &name, const string &password, const string &role)
 {
-    if (db.addUser(userId, name, password, role)) {
+    if (g_db && g_db->addUser(userId, name, password, role))
+    {
         cout << "User " << name << " (" << role << ") registered successfully with ID: " << userId << endl;
-    } else {
+    }
+    else
+    {
         cout << "Failed to register user." << endl;
     }
 }
@@ -175,28 +171,37 @@ a:
     cout << "Enter your role (Admin/Patient): ";
     cin >> role;
 
-    do
+    // Generate a unique 4-digit ID
+    userId = rand() % 9000 + 1000;
+
+    // Make sure the database is open before registering
+
+    if (!g_db || !g_db->open())
     {
-        // use idGenerator function
-        userId = rand() % 9000 + 1000; // Generate a unique 4-digit ID
-    } while (userCredentials.count(userId));
-    
+        
+        cout << "Error: Database connection failed. Please try again later.\n";
+        return;
+    }
 
     registerUser(userId, name, password, role);
 }
 
-
 // Function to authenticate a user
-
 bool authenticate(int userId, const string &password)
 {
-    return db.authenticateUser(userId, password);
+    // Make sure the database is open
+    if (!g_db || !g_db->open())
+    {
+        cout << "Error: Database connection failed. Please try again later.\n";
+        return false;
+    }
+
+    return g_db->authenticateUser(userId, password);
 }
 
 // Function to login user
 void loginUser()
 {
-    // why not we use this variable globally
     int userId;
     string password;
 b:
@@ -227,7 +232,7 @@ c:
 
         if (role == "Admin")
         {
-            d:
+        d:
             cout << "Please enter your Admin ID to proceed: ";
             int adminId;
             cin >> adminId;
@@ -523,7 +528,6 @@ a:
             cout << "Patient with the name \"" << name << "\" not found.\n";
             goto d;
         }
-        
     }
 }
 
@@ -549,7 +553,7 @@ void search()
     cout << "Enter the name of the patient: ";
     cin.ignore(); // Move this before getline
     getline(cin, name);
-    
+
     bool found = false; // Add flag to check if patient was found
     for (int i = 0; i < num; i++)
     {
@@ -566,8 +570,9 @@ void search()
             break;
         }
     }
-    
-    if (!found) {
+
+    if (!found)
+    {
         cout << "Patient with name \"" << name << "\" not found.\n";
     }
 }
@@ -812,7 +817,6 @@ void bookAppointment()
 }
 
 // Function to cancel an appointment
-
 void cancelAppointment()
 {
     int idToCancelAppointment;
@@ -853,62 +857,36 @@ i:
 
 int main()
 {
-    // Use time() to seed the random number generator
-    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    // Initialize random seed
+    srand(static_cast<unsigned int>(time(nullptr)));
 
-    // Create full path for database
-    std::string dbPath = "hospital.db";
-    
     // Print working directory for debugging
     char cwd[1024];
-    if (GetCurrentDir(cwd, sizeof(cwd)) != NULL) {
-        std::cout << "Current working directory: " << cwd << std::endl;
-        std::cout << "Database will be created at: " << cwd << "\\" << dbPath << std::endl;
-        std::cout << "Looking for SQLite DLL in: " << cwd << "\\sqlite" << std::endl;
-    } else {
-        std::cerr << "Could not get current working directory" << std::endl;
+    if (GetCurrentDir(cwd, sizeof(cwd)) != NULL)
+    {
+        cout << "Current working directory: " << cwd << endl;
+        cout << "Database will be created at: " << cwd << "\\" << dbPath << endl;
     }
-    
-    // Try to load SQLite library explicitly
-    #ifdef _WIN32
-    HMODULE hDll = LoadLibrary("sqlite3.dll");
-    if (!hDll) {
-        std::cerr << "Failed to load sqlite3.dll. Error code: " << GetLastError() << std::endl;
-        hDll = LoadLibrary("sqlite\\sqlite3.dll");
-        if (!hDll) {
-            std::cerr << "Failed to load sqlite\\sqlite3.dll. Error code: " << GetLastError() << std::endl;
-            std::cout << "Press any key to exit...";
-            std::cin.get();
-            return 1;
-        } else {
-            std::cout << "Successfully loaded sqlite\\sqlite3.dll" << std::endl;
-        }
-    } else {
-        std::cout << "Successfully loaded sqlite3.dll" << std::endl;
-    }
-    #endif
-    
-    // Open database connection
-    Database db(dbPath);
-    if (!db.open()) {
-        std::cerr << "Failed to open database. Exiting..." << std::endl;
-        std::cout << "Press any key to exit...";
-        std::cin.get();
-        return 1;
+    else
+    {
+        cerr << "Could not get current working directory" << endl;
     }
 
-    std::cout << "Database opened successfully!" << std::endl;
+    // Initialize database connection
+    g_db = new Database(dbPath);
+    if (!g_db->open())
+    {
+        cerr << "Failed to open database. Exiting..." << endl;
+        cout << "Press any key to exit...";
+        cin.get();
+        delete g_db;
+        return 1;
+    }
+    cout << "Database opened successfully!" << endl;
 
     // Initialize appointment slots
-    if (!db.initializeAppointmentSlots()) {
-        std::cerr << "Failed to initialize appointment slots. Exiting..." << std::endl;
-        std::cout << "Press any key to exit...";
-        std::cin.get();
-        return 1;
-    }
+    initialSlots();
 
-    std::cout << "Appointment slots initialized successfully!" << std::endl;
-    
     // Title
     cout << setfill('=') << setw(displayWidth) << "=" << endl;
     cout << setfill(' ')
@@ -965,17 +943,13 @@ int main()
         }
     }
 
+    // Clean up database connection
+    if (g_db)
+    {
+        g_db->close();
+        delete g_db;
+        g_db = nullptr;
+    }
+
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
