@@ -1,1 +1,732 @@
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
+#include <mysql_driver.h>
+#include <mysql_connection.h>
+
+#include <iostream>
+#include <iomanip>
+#include <limits>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+// Global MySQL objects
+sql::mysql::MySQL_Driver* driver;
+sql::Connection* con;
+sql::Statement* stmt;
+// Connecting to the existing database
+void connectDB()
+{
+    try
+    {
+        driver = sql::mysql::get_mysql_driver_instance();
+        con = driver->connect("tcp://localhost:3306", "root", "bekamsql@1997");
+        con->setSchema("hospital_db");
+        stmt = con->createStatement();
+    }
+    catch (sql::SQLException& e)
+    {
+        cerr << "Connection failed: " << e.what() << endl;
+        exit(1);
+    }
+}
+
+struct Patient
+{
+    string first_name, middle_name, last_name, history;
+    int gender, age;
+    double weight, height;
+};
+// Add Records of Patients
+void addPatient()
+{
+    int n;
+    cout << "Enter the number of patients you would like to add: ";
+    cin >> n;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear the input buffer
+
+    vector<Patient> patients; // creates vector with size == n, default-initialized
+    patients.reserve(n);
+
+    for (int i = 0; i < n; ++i)
+    {
+        Patient p;
+        cout << "Enter details for Pateint " << i + 1 << " of " << n << ": " << "\n";
+        cout << "First Name: ";
+        getline(cin, p.first_name);
+        cout << "Middle Name: ";
+        getline(cin, p.middle_name);
+        cout << "Last Name: ";
+        getline(cin, p.last_name);
+        cout << "Gender (1.Male/2.Female): ";
+        cin >> p.gender;
+        cout << "Age: ";
+        cin >> p.age;
+        cout << "Weight: ";
+        cin >> p.weight;
+        cout << "Height: ";
+        cin >> p.height;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Medical History: ";
+        getline(cin, p.history);
+        patients.push_back(move(p));
+    }
+    // Insert each patient in the vector
+    for (int i = 0; i < patients.size(); ++i)
+    {
+        const auto& p = patients[i];
+        string query =
+            "INSERT INTO Patients "
+            "(first_name, middle_name, last_name, age, gender, weight, height, disease) VALUES ('" +
+            p.first_name + "', '" + p.middle_name + "', '" + p.last_name +
+            "', " + to_string(p.age) + ", " + to_string(p.gender) +
+            ", " + to_string(p.weight) + ", " + to_string(p.height) +
+            ", '" + p.history + "')";
+        try
+        {
+            stmt->execute(query);
+            cout << "Patient " << (i + 1) << " added successfully.\n";
+        }
+        catch (sql::SQLException& e)
+        {
+            std::cerr << "Error inserting patient " << (i + 1) << ": "
+                << e.what() << "\n";
+        }
+    }
+}
+
+struct Date
+{
+    int day, month, year;
+};
+
+struct Bill
+{
+    int patient_id, billId, n;
+    double consult, meds, lab, room, total;
+    Date date;
+    char choice;
+    string status, card, cvc;
+};
+// Generate Multiple Bills
+void generateBill(Bill& bill)
+{
+
+    cout << "How many bills would you like to generate? ";
+    cin >> bill.n;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    // 1) Read N bills into a vector
+    vector<Bill> bills;
+    bills.reserve(bill.n); // Reserve space/memory for N bills
+
+    // 2) For each bill, check if the patient exists
+    for (int i = 0; i < bill.n; ++i)
+    {
+        cout << "\n=== Enter details for bill " << i + 1 << " of " << bill.n << " ===\n";
+        cout << "Enter patient ID: ";
+        cin >> bill.patient_id;
+
+        {
+            sql::ResultSet* checkRes = stmt->executeQuery(
+                "SELECT COUNT(*) AS cnt FROM Patients WHERE id = " + to_string(bill.patient_id));
+            checkRes->next();
+            if (checkRes->getInt("cnt") == 0)
+            {
+                std::cout << "Patient ID " << bill.patient_id << " does not exist.\n";
+                delete checkRes;
+                --i; // retry this index
+                continue;
+            }
+            delete checkRes;
+        }
+        // 3) Read the bill details
+        cout << "Enter consultation fee: ";
+        cin >> bill.consult;
+        cout << "Enter medication fee: ";
+        cin >> bill.meds;
+        cout << "Enter lab charges: ";
+        cin >> bill.lab;
+        cout << "Enter room charge: ";
+        cin >> bill.room;
+        bill.total = bill.consult + bill.meds + bill.lab + bill.room;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        bills.push_back(bill);
+    }
+    // 4) Insert each bill into the database
+    for (int i = 0; i < bills.size(); ++i)
+    {
+        const Bill& b = bills[i];
+        string query = "INSERT INTO Bills (patient_id, consultation_fee, medication_fee, lab_fee, room_charge, total_amount, status) VALUES (" +
+            to_string(b.patient_id) + ", " + to_string(b.consult) + ", " + to_string(b.meds) + ", " +
+            to_string(b.lab) + ", " + to_string(b.room) + ", " + to_string(b.total) + ", 'Unpaid')";
+        try
+        {
+            stmt->execute(query);
+            cout << "Bill " << i + 1 << " generated successfully.Total: $" << b.total << endl;
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error generating bill: " << e.what() << endl;
+        }
+    }
+}
+// Update Multiple Bills
+void updateBill(Bill& bill)
+{
+    cout << "How many bills would you like to update? ";
+    cin >> bill.n;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    // 1) Read N bills
+    for (int i = 0; i < bill.n; ++i)
+    {
+        cout << "\n=== Enter details for bill " << (i + 1) << " of " << bill.n << " ===\n";
+        cout << "Enter Bill ID to update: ";
+        cin >> bill.billId;
+        cin.ignore();
+
+        // Check if bill exists
+        try
+        {
+            sql::ResultSet* res = stmt->executeQuery(
+                "SELECT consultation_fee, medication_fee, lab_fee, room_charge FROM Bills WHERE bill_id = " + to_string(bill.billId));
+
+            if (!res->next())
+            {
+                cout << "Bill ID " << bill.billId << " does not exist. Update aborted.\n";
+                delete res;
+                continue;
+            }
+
+            bill.consult = res->getDouble("consultation_fee");
+            bill.meds = res->getDouble("medication_fee");
+            bill.lab = res->getDouble("lab_fee");
+            bill.room = res->getDouble("room_charge");
+            delete res;
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error fetching bill data: " << e.what() << endl;
+            continue;
+        }
+
+        // Input new values
+        string input;
+        double consult = bill.consult;
+        double meds = bill.meds;
+        double lab = bill.lab;
+        double room = bill.room;
+
+        cout << "Enter new bill details (leave blank to retain current value):\n";
+        cout << "Enter new consultation fee [" << consult << "]: ";
+        getline(cin, input);
+        if (!input.empty())
+            consult = stod(input);
+
+        cout << "Enter new medication fee [" << meds << "]: ";
+        getline(cin, input);
+        if (!input.empty())
+            meds = stod(input);
+
+        cout << "Enter new lab charges [" << lab << "]: ";
+        getline(cin, input);
+        if (!input.empty())
+            lab = stod(input);
+
+        cout << "Enter new room charge [" << room << "]: ";
+        getline(cin, input);
+        if (!input.empty())
+            room = stod(input);
+
+        double total = consult + meds + lab + room;
+        // Update the bill in the database
+        try
+        {
+            string update = "UPDATE Bills SET consultation_fee = " + to_string(consult) +
+                ", medication_fee = " + to_string(meds) +
+                ", lab_fee = " + to_string(lab) +
+                ", room_charge = " + to_string(room) +
+                ", total_amount = " + to_string(total) +
+                " WHERE bill_id = " + to_string(bill.billId);
+
+            stmt->execute(update);
+            cout << "Bill " << (i + 1) << " updated successfully. Total: $" << total << "\n";
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error updating bill: " << e.what() << endl;
+        }
+    }
+}
+
+// Delete Multiple Bills
+void deleteBill(Bill& bill)
+{
+    cout << "How many bills would you like to delete? ";
+    cin >> bill.n;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    vector<int> billIds;
+    billIds.reserve(bill.n);
+    for (int i = 0; i < bill.n; ++i)
+    {
+        cout << "Enter Bill ID " << (i + 1) << " of " << bill.n << ": ";
+        cin >> bill.billId;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        billIds.push_back(bill.billId);
+    }
+    // Iterate through each bills based on the bill id entered
+    for (int i = 0; i < billIds.size(); ++i)
+    {
+        int id = billIds[i];
+
+        // Check if bill exists
+        try
+        {
+            unique_ptr<sql::ResultSet> checkRes(
+                stmt->executeQuery("SELECT COUNT(*) AS cnt FROM Bills WHERE bill_id = " + to_string(id)));
+
+            if (checkRes->next() && checkRes->getInt("cnt") == 0)
+            {
+                cout << "Bill ID " << id << " does not exist.d\n";
+                continue;
+            }
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error checking bill ID " << id << ": " << e.what() << endl;
+            continue;
+        }
+
+        // Delete the bill from the data base
+        try
+        {
+            string del = "DELETE FROM Bills WHERE bill_id = " + to_string(id);
+            stmt->execute(del);
+            cout << "Bill ID " << id << " deleted successfully.\n";
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error deleting bill ID " << id << ": " << e.what() << endl;
+        }
+    }
+}
+
+// check the length of the cvc and check if it is digit
+bool isValidCVC(const string& cvc) { return cvc.length() == 3 && all_of(cvc.begin(), cvc.end(), ::isdigit); }
+// check if the date is in the future(ahead of the current date)
+bool isValidExpiryDate(const Date& exp)
+{
+    time_t now = time(0);
+    tm* t = localtime(&now);
+    int cy = t->tm_year + 1900;
+    int cm = t->tm_mon + 1;
+    int cd = t->tm_mday;
+    return exp.year > cy ||
+        (exp.year == cy && exp.month > cm) ||
+        (exp.year == cy && exp.month == cm && exp.day >= cd);
+}
+
+// Display multiple generated bills from the data base for a single patient and prompt to pay for the bills
+void viewAndPayBills(Bill& bill)
+{
+    try
+    {
+        // 1) Check if the patient exists
+        cout << "Enter Patient ID: ";
+        cin >> bill.patient_id;
+
+        sql::PreparedStatement* checkPatient =
+            con->prepareStatement("SELECT COUNT(*) FROM Patients WHERE id = ?");
+        checkPatient->setInt(1, bill.patient_id);
+        sql::ResultSet* rsPatient = checkPatient->executeQuery();
+        rsPatient->next();
+        if (rsPatient->getInt(1) == 0)
+        {
+            cout << "Patient ID does not exist.\n";
+            delete rsPatient;
+            delete checkPatient;
+            return;
+        }
+        delete rsPatient;
+        delete checkPatient;
+
+        // 2) Check unpaid bills
+        sql::PreparedStatement* checkBillsExist =
+            con->prepareStatement("SELECT COUNT(*) FROM Bills WHERE patient_id = ? AND status != 'Paid'");
+        checkBillsExist->setInt(1, bill.patient_id);
+        sql::ResultSet* rsBillsExist = checkBillsExist->executeQuery();
+        rsBillsExist->next();
+        int unpaidBillsCount = rsBillsExist->getInt(1);
+        delete rsBillsExist;
+        delete checkBillsExist;
+
+        if (unpaidBillsCount == 0)
+        {
+            cout << "No unpaid bills found for this patient.\n";
+            return;
+        }
+
+        // 3) Show unpaid bills
+        sql::PreparedStatement* listBills =
+            con->prepareStatement(
+                "SELECT bill_id, consultation_fee, medication_fee, lab_fee, room_charge, total_amount, status "
+                "FROM Bills WHERE patient_id = ? AND status != 'Paid'");
+        listBills->setInt(1, bill.patient_id);
+        sql::ResultSet* rsBills = listBills->executeQuery();
+
+        cout << "\nUnpaid Bills:\n";
+        cout << left << setw(8) << "BillID"
+            << setw(12) << "Consult"
+            << setw(12) << "Medication"
+            << setw(8) << "Lab"
+            << setw(10) << "Room"
+            << setw(10) << "Total"
+            << "Status" << "\n";
+        cout << string(70, '-') << "\n";
+
+        vector<int> availableBillIds;
+        while (rsBills->next())
+        {
+            bill.billId = rsBills->getInt("bill_id");
+            availableBillIds.push_back(bill.billId);
+            cout << left << setw(8) << bill.billId
+                << setw(12) << rsBills->getDouble("consultation_fee")
+                << setw(12) << rsBills->getDouble("medication_fee")
+                << setw(8) << rsBills->getDouble("lab_fee")
+                << setw(10) << rsBills->getDouble("room_charge")
+                << setw(10) << rsBills->getDouble("total_amount")
+                << rsBills->getString("status") << "\n";
+        }
+        delete rsBills;
+        delete listBills;
+
+        // 4) Ask user if they want to pay
+        cout << "\nDo you want to pay any of the above bills? (y/n): ";
+        cin >> bill.choice;
+        if (bill.choice != 'y' && bill.choice != 'Y')
+        {
+            return;
+        }
+
+        // 5) Get number of bills to pay
+        cout << "How many bills do you want to pay at once? ";
+        cin >> bill.n;
+        if (bill.n <= 0 || bill.n > (int)availableBillIds.size())
+        {
+            cout << "Invalid number.\n";
+            return;
+        }
+
+        vector<int> billIdsToPay;
+        for (int i = 0; i < bill.n; ++i)
+        {
+
+            cout << "Enter Bill ID to pay (" << i + 1 << "/" << bill.n << "): ";
+            cin >> bill.billId;
+            if (find(availableBillIds.begin(), availableBillIds.end(), bill.billId) == availableBillIds.end())
+            {
+                cout << "Bill ID " << bill.billId << " is not in the unpaid list.\n";
+                continue;
+            }
+            billIdsToPay.push_back(bill.billId);
+        }
+
+        if (billIdsToPay.empty())
+        {
+            cout << "No valid bills selected.\n";
+            return;
+        }
+
+        // 6) Payment details (once for all bills)
+        cout << "Enter your card number: ";
+        cin >> bill.card;
+        while (bill.card.length() != 16 || !all_of(bill.card.begin(), bill.card.end(), ::isdigit))
+        {
+            cout << "Invalid. Enter 16-digit card: ";
+            cin >> bill.card;
+        }
+
+        cout << "Enter your CVC: ";
+        cin >> bill.cvc;
+        while (!isValidCVC(bill.cvc))
+        {
+            cout << "Invalid. Enter 3-digit CVC: ";
+            cin >> bill.cvc;
+        }
+
+        cout << "Enter expiry date (YYYY MM DD): ";
+        cin >> bill.date.year >> bill.date.month >> bill.date.day;
+        if (!isValidExpiryDate(bill.date))
+        {
+            cout << "Card expired.\n";
+            return;
+        }
+
+        cout << "Confirm payment for " << billIdsToPay.size() << " bill(s)? (y/n): ";
+        cin >> bill.choice;
+        if (bill.choice != 'y' && bill.choice != 'Y')
+        {
+            return;
+        }
+
+        // 7) Pay each bill
+        string expiryStr = to_string(bill.date.year) + "-" +
+            (bill.date.month < 10 ? "0" : "") + to_string(bill.date.month) + "-" +
+            (bill.date.day < 10 ? "0" : "") + to_string(bill.date.day);
+
+        for (int billId : billIdsToPay)
+        {
+            sql::PreparedStatement* updateBill =
+                con->prepareStatement("UPDATE Bills SET status = 'Paid', card_number = ?, cvc = ?, expiry_date = ? WHERE bill_id = ?");
+            updateBill->setString(1, bill.card);
+            updateBill->setString(2, bill.cvc);
+            updateBill->setString(3, expiryStr);
+            updateBill->setInt(4, billId);
+            updateBill->execute();
+            delete updateBill;
+
+            cout << "Bill ID " << billId << " paid successfully.\n";
+        }
+    }
+    catch (sql::SQLException& e)
+    {
+        cout << "Database error: " << e.what() << "\n";
+    }
+}
+
+// Generate receipt if it doesn't exist yet
+void generateReceipt()
+{
+    Bill bill;
+    // Step 1: Ask how many receipts to generate
+    vector<Bill> billList;
+    cout << "\nHow many bill receipts do you want to generate? ";
+    cin >> bill.n;
+
+    // Step 2: Take multiple Bill IDs from the user
+    for (int i = 0; i < bill.n; ++i)
+    {
+        Bill b;
+        cout << "Enter Bill ID #" << (i + 1) << " of " << bill.n << ": ";
+        cin >> b.billId;
+        billList.push_back(b);
+    }
+
+    // Step 3: Process each bill in the list
+    for (auto& bill : billList)
+    {
+        try
+        {
+            // 1) Check if a receipt already exists
+            unique_ptr<sql::PreparedStatement> checkReceiptStmt(
+                con->prepareStatement("SELECT COUNT(*) AS count FROM Reciept WHERE bill_id = ?"));
+            checkReceiptStmt->setInt(1, bill.billId);
+            unique_ptr<sql::ResultSet> checkReceiptRes(checkReceiptStmt->executeQuery());
+            checkReceiptRes->next();
+            if (checkReceiptRes->getInt("count") > 0)
+            {
+                cout << "Receipt already exists for Bill ID " << bill.billId << ".\n";
+                continue;
+            }
+
+            // 2) Check if the bill exists and fetch data
+            unique_ptr<sql::PreparedStatement> checkBillStmt(
+                con->prepareStatement("SELECT patient_id, total_amount FROM Bills WHERE bill_id = ?"));
+            checkBillStmt->setInt(1, bill.billId);
+            unique_ptr<sql::ResultSet> billRes(checkBillStmt->executeQuery());
+
+            if (!billRes->next())
+            {
+                cout << "Bill ID " << bill.billId << " not found.\n";
+                continue;
+            }
+
+            int patient_id = billRes->getInt("patient_id");
+            double total = billRes->getDouble("total_amount");
+
+            // 3) Insert new receipt
+            unique_ptr<sql::PreparedStatement> insertStmt(
+                con->prepareStatement("INSERT INTO Reciept (bill_id, patient_id, total) VALUES (?, ?, ?)"));
+            insertStmt->setInt(1, bill.billId);
+            insertStmt->setInt(2, patient_id);
+            insertStmt->setDouble(3, total);
+            insertStmt->executeUpdate();
+
+            cout << "Receipt successfully generated for Bill ID " << bill.billId << ".\n";
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "SQL error for Bill ID " << bill.billId << ": " << e.what() << "\n";
+        }
+    }
+}
+
+// View the receipt if it exists (dependent on receipt already being generated)
+void viewReceipt()
+{
+    Bill bill;
+    // Step 1: Ask how many receipts to view
+    vector<Bill> billList;
+    cout << "\nHow many bill receipts do you want to view? ";
+    cin >> bill.n;
+
+    // Step 2: Take multiple Bill IDs from the user
+    for (int i = 0; i < bill.n; ++i)
+    {
+        Bill b;
+        cout << "Enter Bill ID #" << (i + 1) << " of " << bill.n << ": ";
+        cin >> b.billId;
+        billList.push_back(b);
+    }
+
+    // Step 3: Process each bill to view its receipt
+    for (auto& bill : billList)
+    {
+        try
+        {
+            unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(
+                "SELECT r.reciept_id, r.reciept_date, "
+                "b.bill_id, b.consultation_fee, b.medication_fee, b.lab_fee, b.room_charge, b.total_amount, b.status, "
+                "p.first_name, p.middle_name, p.last_name, r.total "
+                "FROM Reciept r "
+                "JOIN Bills b ON r.bill_id = b.bill_id "
+                "JOIN Patients p ON b.patient_id = p.id "
+                "WHERE b.bill_id = ?"));
+            pstmt->setInt(1, bill.billId);
+            unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+            if (!res->next())
+            {
+                cout << "No receipt found for Bill ID " << bill.billId << ". Receipt may not be generated yet.\n";
+                continue;
+            }
+
+            bill.status = res->getString("status");
+            if (bill.status != "Paid")
+            {
+                cout << "Cannot view receipt: Bill is not paid (Status: " << bill.status << ").\n";
+                continue;
+            }
+
+            // Format patient name
+            string fullName = res->getString("first_name");
+            string middleName = res->getString("middle_name");
+            if (!middleName.empty())
+                fullName += " " + middleName;
+            fullName += " " + res->getString("last_name");
+
+            // Display receipt
+            cout << "\n========== RECEIPT ==================\n";
+            cout << "Receipt ID      : " << res->getInt("reciept_id") << "\n";
+            cout << "Date/Time       : " << res->getString("reciept_date") << "\n";
+            cout << "Bill ID         : " << res->getInt("bill_id") << "\n";
+            cout << "Patient Name    : " << fullName << "\n";
+            cout << "-------------------------------------\n";
+            cout << "Consultation fee: $" << fixed << setprecision(2) << res->getDouble("consultation_fee") << "\n";
+            cout << "Medication fee  : $" << fixed << setprecision(2) << res->getDouble("medication_fee") << "\n";
+            cout << "Lab fee         : $" << fixed << setprecision(2) << res->getDouble("lab_fee") << "\n";
+            cout << "Room charge     : $" << fixed << setprecision(2) << res->getDouble("room_charge") << "\n";
+            cout << "-------------------------------------\n";
+            cout << "Total amount    : $" << fixed << setprecision(2) << res->getDouble("total") << "\n";
+            cout << "Payment status  : " << bill.status << "\n";
+            cout << "===============================\n";
+        }
+        catch (sql::SQLException& e)
+        {
+            cerr << "Error viewing receipt for Bill ID " << bill.billId << ": " << e.what() << "\n";
+        }
+    }
+}
+
+// Admin Panel
+void adminMenu()
+{
+    Bill currentBill;
+    int choice;
+    do
+    {
+        cout << "\n===== Admin Menu =====\n"
+            << "1. Add Patient\n2. Generate Bill\n3. Update Bill\n4. Delete Bill\n5. Back to main menu\n"
+            << "Choose: ";
+        cin >> choice;
+        switch (choice)
+        {
+        case 1:
+            addPatient();
+            break;
+        case 2:
+            generateBill(currentBill);
+            break;
+        case 3:
+            updateBill(currentBill);
+            break;
+        case 4:
+            deleteBill(currentBill);
+            break;
+        case 5:
+            return;
+        default:
+            cout << "Invalid option.\n";
+        }
+    } while (true);
+}
+// Patient bill
+void patientMenu()
+{
+    Bill currentBill;
+    int choice;
+    do
+    {
+        cout << "\n===== Patient Menu =====\n"
+            << "1. View & Pay Bills\n2. Generate Receipt\n3. View Reciept\n4. Back to main menu\n"
+            << "Choose: ";
+        cin >> choice;
+        switch (choice)
+        {
+        case 1:
+            viewAndPayBills(currentBill);
+            break;
+        case 2:
+        {
+            generateReceipt();
+            break;
+        }
+        case 3:
+            viewReceipt();
+        case 4:
+            return;
+        default:
+            cout << "Invalid option.\n";
+        }
+    } while (true);
+}
+// Main menu
+int main()
+{
+    connectDB();
+    int role;
+    do
+    {
+        cout << "\n===== Hospital Billing System =====\n1. Admin\n2. Patient\n3. Exit\n";
+        cout << "Enter your role: ";
+        cin >> role;
+        if (role == 1)
+            adminMenu();
+        else if (role == 2)
+            patientMenu();
+        else if (role == 3)
+            break;
+        else
+            cout << "Invalid role.\n";
+    } while (true);
+
+    delete stmt;
+    delete con;
+    return 0;
+}
 
