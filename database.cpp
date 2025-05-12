@@ -21,8 +21,8 @@ Database::~Database()
 bool Database::open()
 {
     // Print the path for debugging
-    std::cout << "Attempting to open database at: " << dbPath << std::endl;
-    std::cout << "SQLite version: " << sqlite3_libversion() << std::endl;
+    // std::cout << "Attempting to open database at: " << dbPath << std::endl;
+    // std::cout << "SQLite version: " << sqlite3_libversion() << std::endl;
 
     int rc = sqlite3_open(dbPath.c_str(), &db);
     if (rc)
@@ -31,7 +31,7 @@ bool Database::open()
         return false;
     }
 
-    std::cout << "Database connection established successfully." << std::endl;
+    // std::cout << "Database connection established successfully." << std::endl;
 
     // Create tables if they don't exist
     bool success = true;
@@ -66,7 +66,7 @@ bool Database::open()
         return false;
     }
 
-    std::cout << "Database tables created/verified successfully." << std::endl;
+    // std::cout << "Database tables created/verified successfully." << std::endl;
     return true;
 }
 
@@ -88,7 +88,6 @@ bool Database::executeQuery(const std::string &query)
     }
 
     char *errMsg = nullptr;
-    std::cout << "Executing query: " << query.substr(0, 60) << "..." << std::endl;
 
     int rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &errMsg);
 
@@ -263,8 +262,7 @@ bool Database::bookAppointment(int appointmentId, const std::string& appointment
 // Implementation for cancelAppointment method
 bool Database::cancelAppointment(int appointmentId)
 {
-    std::string query = "UPDATE appointments SET patient_name = 'Available', appointment_id = 0 WHERE appointment_id = " +
-                        std::to_string(appointmentId);
+    std::string query = "DELETE FROM appointments WHERE id = " + std::to_string(appointmentId);
     return executeQuery(query);
 }
 
@@ -285,7 +283,7 @@ bool Database::reopenDatabase()
         return false;
     }
 
-    std::cout << "Database reopened successfully." << std::endl;
+    // std::cout << "Database reopened successfully." << std::endl;
     return true;
 }
 
@@ -315,4 +313,67 @@ bool Database::getAllPatients(int (*callback)(void *, int, char **, char **))
 {
     std::string query = "SELECT name, gender, patient_id, age, weight, height, description FROM patients";
     return executeQueryWithCallback(query, callback, nullptr);
+}
+
+// Implementation for getStaffId method
+int Database::getStaffId(const std::string &name)
+{
+    int staffId = -1; // Default value if staff not found
+    std::string query = "SELECT staff_id FROM staff WHERE name = '" + name + "'";
+
+    auto idCallback = [](void *data, int argc, char **argv, char **azColName) -> int
+    {
+        int *staffId = static_cast<int *>(data);
+        if (argc > 0 && argv[0])
+        {
+            *staffId = std::stoi(argv[0]);
+        }
+        return 0;
+    };
+
+    executeQueryWithCallback(query, idCallback, &staffId);
+    return staffId;
+}
+
+// Check if an appointment date is available
+bool Database::isAppointmentAvailable(const std::string &appointmentDate)
+{
+    bool isAvailable = true;
+    std::string query = "SELECT COUNT(*) FROM appointments WHERE appointment_date = '" + appointmentDate + "'";
+    
+    auto callback = [](void *data, int argc, char **argv, char **azColName) -> int
+    {
+        bool *available = static_cast<bool*>(data);
+        if (argc > 0 && argv[0])
+        {
+            int count = std::stoi(argv[0]);
+            *available = (count == 0); // Available if no appointments exist for this date
+        }
+        return 0;
+    };
+    
+    executeQueryWithCallback(query, callback, &isAvailable);
+    return isAvailable;
+}
+
+// Get all appointments from database
+std::vector<std::tuple<int, std::string>> Database::getAllAppointments()
+{
+    std::vector<std::tuple<int, std::string>> appointments;
+    std::string query = "SELECT id, appointment_date FROM appointments ORDER BY appointment_date";
+    
+    auto callback = [](void *data, int argc, char **argv, char **azColName) -> int
+    {
+        auto *appts = static_cast<std::vector<std::tuple<int, std::string>>*>(data);
+        if (argc >= 2 && argv[0] && argv[1])
+        {
+            int id = std::stoi(argv[0]);
+            std::string date = argv[1];
+            appts->push_back(std::make_tuple(id, date));
+        }
+        return 0;
+    };
+    
+    executeQueryWithCallback(query, callback, &appointments);
+    return appointments;
 }

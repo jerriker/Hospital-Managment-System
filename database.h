@@ -29,14 +29,6 @@ public:
     std::string getUserName(int userId);
 
     // Patient management
-    bool addPatient(int patientId, const std::string &name, const std::string &gender, int age,
-                    float weight, float height, const std::string &description);
-    bool updatePatient(int patientId, const std::string &name, const std::string &gender, int age,
-                       float weight, float height, const std::string &description);
-    bool getPatientById(int patientId, std::string &name, std::string &gender, int &age,
-                        float &weight, float &height, std::string &description);
-    bool getAllPatients();
-
     bool addPatient(int patientId, const std::string& name, const std::string& gender, int age, 
                    float weight, float height, const std::string& description);
     bool getAllPatients(int (*callback)(void*, int, char**, char**)); // Add this to your public methods
@@ -44,18 +36,18 @@ public:
     
     // Appointment management
     bool initializeAppointmentSlots();
-    bool bookAppointment(int appointmentId, const std::string &patientName);
+    bool bookAppointment(int appointmentId, const std::string &appointmentDate);
     bool cancelAppointment(int appointmentId);
     bool getAppointmentSlots();
     bool getBookedAppointments();
+    bool isAppointmentAvailable(const std::string &appointmentDate);
+    std::vector<std::tuple<int, std::string>> getAllAppointments(); // Returns all appointments
 
     // Staff management
     bool addStaff(const std::string &name, const std::string &role);
     bool checkStaff(int adminId);
     bool deleteStaff(int staff_id);
-    bool markAttendance(const std::string &name, bool isPresent);
-    bool getStaffAttendance();
-
+    int getStaffId(const std::string &name); 
     // Add this to your public methods
     bool reopenDatabase();
     bool checkDatabaseFile();

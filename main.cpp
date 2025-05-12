@@ -7,10 +7,9 @@
  * 4. Barok Yeshiber     ID: ETS0224/16
  * 5. Addisalem Hailay   ID: ETS0100/16
  * 6. Bethelhem Degefu   ID: ETS0283/16
-
-
  */
-#include<iostream>
+
+#include <iostream>
 
 #include <unordered_map> // For storing user credentials and other mappings
 #include <string>
@@ -18,14 +17,14 @@
 #include <iomanip> // For setw
 #include <cstdlib> // For random number generation
 #include <ctime>   // For seeding the random number generator
-#ifdef _WIN32
-#include <direct.h>  // For _getcwd on Windows
-#include <windows.h> // For LoadLibrary and GetLastError
-#define GetCurrentDir _getcwd
-#else
-#include <unistd.h> // For getcwd on Unix
-#define GetCurrentDir getcwd
-#endif
+// #ifdef _WIN32
+// #include <direct.h>  // For _getcwd on Windows
+// #include <windows.h> // For LoadLibrary and GetLastError
+// #define GetCurrentDir _getcwd
+// #else
+// #include <unistd.h> // For getcwd on Unix
+// #define GetCurrentDir getcwd
+// #endif
 #include "database.h"
 
 using namespace std;
@@ -44,19 +43,14 @@ void loginUser();
 void registerNewUser();
 void patientManagement();
 void add();
-void updatePatient();
 void displayPatients();
-void search();
 void bookAppointment();
 void cancelAppointment();
 void displayAppointments();
-void displayBookedAppointments();
 void registerNewStaff();
 void registerStaff(const string &name, const string &role);
 void removeStaff();
 void staffManagement();
-void markAttendance(struct Staff staffList[], int size, const string &name, bool status);
-void displayAttendance(const Staff staffList[], int size);
 void initialSlots();
 int idGenerator();
 
@@ -99,6 +93,99 @@ struct Staff
     bool isPresent; // true = present, false = absent
 };
 
+int main()
+{
+    // Initialize random seed
+    srand(static_cast<unsigned int>(time(nullptr)));
+
+    // Initialize database connection
+    g_db = new Database(dbPath);
+    if (!g_db->open())
+    {
+        cerr << "Failed to open database. Exiting..." << endl;
+        cout << "Press any key to exit...";
+        cin.get();
+        delete g_db;
+        return 1;
+    }
+    // cout << "Database opened successfully!" << endl;
+
+    // Initialize appointment slots
+    initialSlots();
+
+    // Title
+    cout << setfill('=') << setw(displayWidth) << "=" << endl;
+    cout << setfill(' ')
+         << setw((displayWidth + 24) / 2) << "Hospital Management System"
+         << endl;
+    cout << setfill('=') << setw(displayWidth) << "=" << endl;
+
+    // Welcome Message
+    cout << "\n\n";
+    cout << setfill(' ')
+         << setw((displayWidth + 29) / 2) << "*******************************"
+         << endl;
+    cout << setw((displayWidth + 29) / 2) << "* Welcome to Miracle Hospital *"
+         << endl;
+    cout << setw((displayWidth + 29) / 2) << "*******************************"
+         << endl;
+
+    if (!g_db->checkStaff(1))
+    {
+        cout << "Please register the first admin with ID 1.\n";
+        registerNewStaff();
+    }
+    while (true)
+    {
+
+        // Main Menu
+        cout << "\n\n";
+        cout << setfill('-') << setw(displayWidth) << "-" << endl;
+        cout << setfill(' ')
+             << setw((displayWidth + 9) / 2) << "Main Menu" << endl;
+        cout << setfill('-') << setw(displayWidth) << "-" << endl;
+    b:
+        cout << "1,Register \n2,Login  \n3,Exit  \nChooste an option: ";
+
+        cin >> choice;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore();
+            cout << "\nEnter number only\n";
+            goto b;
+        }
+
+        if (choice == 1)
+        {
+            registerNewUser();
+        }
+        else if (choice == 2)
+        {
+            loginUser();
+        }
+        else if (choice == 3)
+        {
+            cout << "Exiting the system.\n";
+            break;
+        }
+        else
+        {
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
+
+    // Clean up database connection
+    if (g_db)
+    {
+        g_db->close();
+        delete g_db;
+        g_db = nullptr;
+    }
+
+    return 0;
+}
+
 // Functions used in appointment scheduling
 void initialSlots()
 {
@@ -118,30 +205,30 @@ int idGenerator()
     return rand() % 10000 + 1;
 }
 
-//Functions used in user authentication  
-// A map to store user credentials (ID, Password, Name, Role)  
+// Functions used in user authentication
+//  A map to store user credentials (ID, Password, Name, Role)
 unordered_map<int, pair<string, pair<string, string>>> userCredentials; // User ID -> {Name, {Password, Role}}
 
-// Function to check if the password is strong 
+// Function to check if the password is strong
 bool isStrongPassword(const string &password)
 {
-if (password.length() <8) 
-return false;  
-bool hasLower =false, hasUpper= false, hasDigit= false, hasSpecial= false; 
+    if (password.length() < 8)
+        return false;
+    bool hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;
 
-for (char c: password) 
-{
-if (islower(c)) 
-hasLower =true; 
-if (isupper(c)) 
-hasUpper= true ;
-if (isdigit(c)) 
-hasDigit= true ;
-if (!isalnum(c))
-hasSpecial =true; 
+    for (char c : password)
+    {
+        if (islower(c))
+            hasLower = true;
+        if (isupper(c))
+            hasUpper = true;
+        if (isdigit(c))
+            hasDigit = true;
+        if (!isalnum(c))
+            hasSpecial = true;
+    }
+    return hasLower && hasUpper && hasDigit && hasSpecial;
 }
-return hasLower && hasUpper && hasDigit && hasSpecial ;
-} 
 
 // Function to register a new user
 void registerUser(int userId, const string &name, const string &password, const string &role)
@@ -314,7 +401,7 @@ void adminPanel()
             staffManagement();
             break;
         case 3:
-            displayBookedAppointments();
+            displayAppointments();
             break;
         case 4:
             cout << "Exiting Admin Panel.\n";
@@ -333,7 +420,7 @@ void patientManagement()
     do
     {
         cout << "\n================= Patient Management Menu =================";
-        cout << "\n\t\t1. Add Patients   \n\t\t2. View Patients' Information     \n\t\t5. Back to Admin Portal Menu";
+        cout << "\n\t\t1. Add Patients   \n\t\t2. View Patients' Information     \n\t\t3. Back to Admin Portal Menu";
     b:
         cout << "\n\n\t\tEnter your choice: ";
         cin >> choice;
@@ -473,9 +560,6 @@ void displayPatients()
     g_db->getAllPatients(patientCallback); // Call the getAllPatients function with the patientCallback function as the callback parameter
 }
 
-
-
-
 // Function to display the staff attendance system
 void registerNewStaff()
 {
@@ -502,9 +586,9 @@ a:
         c = std::tolower(c);
     } // change to lowercase
 
-        if (g_db && g_db->addStaff(name, role))
+    if (g_db && g_db->addStaff(name, role))
     {
-        cout << "Staff " << name << " registered successfully with role: " << role << endl;
+        cout << "Staff " << name << " registered successfully with role: " << role << " id: " << g_db->getStaffId(name) << endl;
     }
     else
     {
@@ -557,50 +641,6 @@ void removeStaff()
     }
 }
 
-
-// === Staff Attendance ===
-vector<Staff> fetchAllStaff() {
-    vector<Staff> staffList;
-    sqlite3_stmt* stmt;
-    const char* query = "SELECT staff_id, name, is_present FROM staff";
-
-    if (sqlite3_prepare_v2(g_db->getDB(), query, -1, &stmt, nullptr) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            Staff s;
-            s.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-            s.isPresent = sqlite3_column_int(stmt, 2);
-            staffList.push_back(s);
-        }
-    } else {
-        cerr << "Failed to fetch staff." << endl;
-    }
-    sqlite3_finalize(stmt);
-    return staffList;
-}
-
-void markAttendanceInDB(const string& name, bool isPresent) {
-    sqlite3_stmt* stmt;
-    const char* sql = "UPDATE staff SET is_present = ? WHERE name = ?";
-
-    if (sqlite3_prepare_v2(g_db->getDB(), sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, isPresent ? 1 : 0);
-        sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
-
-        if (sqlite3_step(stmt) == SQLITE_DONE)
-            cout << "Attendance updated for " << name << ".\n";
-        else
-            cerr << "Failed to update attendance.\n";
-    }
-    sqlite3_finalize(stmt);
-}
-
-void displayAttendance() {
-    auto staffList = fetchAllStaff();
-    for (const auto& s : staffList) {
-        cout << "Name: " << s.name << " | Status: "
-             << (s.isPresent ? "Present" : "Absent") << endl;
-    }
-}
 // Sub menu for staff management
 void staffManagement()
 {
@@ -620,7 +660,7 @@ void staffManagement()
              << endl;
         cout << setfill('=') << setw(displayWidth) << "=" << endl;
 
-        cout << "\n\t\t1. Mark Attendance   \n\t\t2. Display Staff and Attendance    \n\t\t3. Add staff  \n\t\t4. Remove staff   \n\t\t5. Back to Admin Portal Menu \n\t\tEnter your choice: ";
+        cout << "\n\t\t1. Add staff  \n\t\t2. Remove staff   \n\t\t3. Back to Admin Portal Menu \n\t\tEnter your choice: ";
     a:
         cin >> choice;
         if (cin.fail())
@@ -633,61 +673,19 @@ void staffManagement()
         switch (choice)
         {
         case 1:
-            cout << "Enter staff name: ";
-            cin.ignore();
-            getline(cin, name);
-            cout << "Enter status (1 for Present, 0 for Absent): ";
-            cin >> status;
-            markAttendanceInDB(name, status);
-            break;
-        case 2:
-            displayAttendance();
-            break;
-        case 3:
             registerNewStaff();
             break;
-        case 4:
+        case 2:
             removeStaff();
             break;
-        case 5:
+        case 3:
             adminPanel();
             break;
         default:
             cout << "\nInvalid choice. Please try again.\n";
             break;
         }
-    } while (choice != 5);
-}
-
-// Function to manage attendance
-void markAttendance(Staff staffList[], int size, const string &name, bool status)
-{
-    if (cin.fail())
-    {
-        cin.clear();
-        cin.ignore();
-    }
-    for (int i = 0; i < size; ++i)
-    {
-        if (staffList[i].name == name)
-        {
-            staffList[i].isPresent = status;
-            cout << "\n\t" << name << " marked as " << (status ? "Present" : "Absent") << "." << endl;
-            return;
-        }
-    }
-    cout << "\n\tStaff member " << name << " not found!" << endl;
-}
-
-// Function to display attendance
-void displayAttendance(const Staff staffList[], int size)
-{
-    cout << "\nAttendance Status:\n";
-    for (int i = 0; i < size; ++i)
-    {
-        cout << "\t\tName: " << staffList[i].name
-             << ", Status: " << (staffList[i].isPresent ? "Present" : "Absent") << endl;
-    }
+    } while (choice != 4);
 }
 
 // Function to display all booked appointments for the admin
@@ -726,7 +724,7 @@ void patientPanel()
              << setw((displayWidth) / 2) << "Welcome to the Patient Portal! (Patient functionality goes here)"
              << endl;
         cout << setfill('=') << setw(displayWidth) << "=" << endl;
-        cout << "\n\t\t1. Display available Appointments  \n\t\t2. Book an Appointment   \n\t\t3. Cancel an Appointment  \n\t\t4. Back to main menu";
+        cout << "\n\t\t1. Book an Appointment   \n\t\t2. Cancel an Appointment  \n\t\t3. Back to main menu";
         cin.ignore();
 
     a:
@@ -742,15 +740,12 @@ void patientPanel()
         switch (choice)
         {
         case 1:
-            displayAppointments();
-            break;
-        case 2:
             bookAppointment();
             break;
-        case 3:
+        case 2:
             cancelAppointment();
             break;
-        case 4:
+        case 3:
             cout << "Exiting patient portal";
             return;
         default:
@@ -765,14 +760,23 @@ void patientPanel()
 void displayAppointments()
 {
     cout << "\n====================Appointment Display=====================\n\n";
-    for (int day = 0; day < daysInWeek; ++day)
+
+    // Get all appointments from database
+    auto appointments = g_db->getAllAppointments();
+
+    if (appointments.empty())
     {
-        cout << setfill('=') << setw(displayWidth) << endl;
-        cout << daysOfWeek[day] << ":\n";
-        for (int slot = 0; slot < appointmentsPerDay; ++slot)
+        cout << "No booked appointments.\n";
+    }
+    else
+    {
+        cout << "Booked appointments:\n";
+        for (const auto &appt : appointments)
         {
-            cout << "  " << times[slot] << ": " << (slots[day][slot] == "Available" ? "Available" : "Booked") << "\n";
+            cout << "ID: " << std::get<0>(appt) << ", Date: " << std::get<1>(appt) << "\n";
         }
+
+        cout << "\nTo book an appointment, please select an available date and time.\n";
     }
 }
 
@@ -780,12 +784,12 @@ void displayAppointments()
 void bookAppointment()
 {
     int dayChoice, timeChoice;
+    string appointmentDate;
 
     cout << "\n====================Appointment Booking====================\n\n";
 
     while (true)
     {
-
         cout << "Available days:\n";
         for (int i = 0; i < daysInWeek; ++i)
         {
@@ -802,21 +806,9 @@ void bookAppointment()
         }
 
         cout << "\nAvailable appointment times on " << daysOfWeek[dayChoice - 1] << ":\n";
-
-        bool slotsAvailable = false;
         for (int i = 0; i < appointmentsPerDay; ++i)
         {
-            if (slots[dayChoice - 1][i] == "Available")
-            {
-                slotsAvailable = true;
-                cout << i + 1 << ". " << times[i] << "\n";
-            }
-        }
-
-        if (!slotsAvailable)
-        {
-            cout << "No available time slots for " << daysOfWeek[dayChoice - 1] << ".\n";
-            continue;
+            cout << i + 1 << ". " << times[i] << "\n";
         }
 
         cout << "Enter the number of the time slot you want to book: ";
@@ -828,23 +820,29 @@ void bookAppointment()
             continue;
         }
 
-        if (slots[dayChoice - 1][timeChoice - 1] != "Available")
+        // Format the appointment date as "Day Time"
+        appointmentDate = daysOfWeek[dayChoice - 1] + " " + times[timeChoice - 1];
+
+        // Check if this appointment slot is available
+        if (!g_db->isAppointmentAvailable(appointmentDate))
         {
             cout << "Appointment already booked. Please choose a different time.\n";
             continue;
         }
 
-        string patientName;
-        getline(cin, patientName);
-        cin.ignore();
+        // Generate a unique appointment ID
+        int appointmentID = idGenerator();
 
-        int appointmentID = idGenerator(); // how to use this function
-
-        slots[dayChoice - 1][timeChoice - 1] = patientName;
-        appointments[dayChoice - 1][timeChoice - 1] = {appointmentID, patientName};
-
-        cout << "Appointment booked successfully for " << daysOfWeek[dayChoice - 1] << " at " << times[timeChoice - 1] << "\n";
-        cout << "Your Appointment ID is: " << appointmentID << ". Please do not lose or share your ID with others for private information.\n";
+        // Book the appointment in the database
+        if (g_db->bookAppointment(appointmentID, appointmentDate))
+        {
+            cout << "Appointment booked successfully for " << appointmentDate << "\n";
+            cout << "Your Appointment ID is: " << appointmentID << ". Please do not lose or share your ID with others for private information.\n";
+        }
+        else
+        {
+            cout << "Failed to book appointment. Please try again.\n";
+        }
 
         break;
     }
@@ -860,134 +858,23 @@ i:
     cout << "Enter your Appointment ID to cancel: ";
     cin >> idToCancelAppointment;
 
-    bool found = false;
-
-    for (int day = 0; day < daysInWeek; ++day)
+    if (cin.fail())
     {
-        for (int slot = 0; slot < appointmentsPerDay; ++slot)
-        {
-            if (appointments[day][slot].id == idToCancelAppointment)
-            {
-                found = true;
-                cout << "Appointment found on " << daysOfWeek[day] << " at " << times[slot] << ".\n";
-                cout << "Canceling your appointment...\n";
-
-                slots[day][slot] = "Available";
-                appointments[day][slot] = {0, ""}; // Reset appointment details
-                cout << "Appointment canceled successfully.\n";
-                break;
-            }
-        }
-        if (found)
-            patientPanel();
-    }
-
-    if (!found)
-    {
-        cout << "Appointment ID not found. Please check your ID and try again.\n";
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "Invalid input. Please enter a numeric appointment ID.\n";
         goto i;
     }
-}
 
-int main()
-{
-    // Initialize random seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-
-    // Print working directory for debugging
-    char cwd[1024];
-    if (GetCurrentDir(cwd, sizeof(cwd)) != NULL)
+    // Try to cancel the appointment in the database
+    if (g_db->cancelAppointment(idToCancelAppointment))
     {
-        cout << "Current working directory: " << cwd << endl;
-        cout << "Database will be created at: " << cwd << "\\" << dbPath << endl;
+        cout << "Appointment canceled successfully.\n";
+        patientPanel();
     }
     else
     {
-        cerr << "Could not get current working directory" << endl;
+        cout << "Failed to cancel appointment. ID may not exist.\n";
+        goto i;
     }
-
-    // Initialize database connection
-    g_db = new Database(dbPath);
-    if (!g_db->open())
-    {
-        cerr << "Failed to open database. Exiting..." << endl;
-        cout << "Press any key to exit...";
-        cin.get();
-        delete g_db;
-        return 1;
-    }
-    cout << "Database opened successfully!" << endl;
-
-    // Initialize appointment slots
-    initialSlots();
-
-    // Title
-    cout << setfill('=') << setw(displayWidth) << "=" << endl;
-    cout << setfill(' ')
-         << setw((displayWidth + 24) / 2) << "Hospital Management System"
-         << endl;
-    cout << setfill('=') << setw(displayWidth) << "=" << endl;
-
-    // Welcome Message
-    cout << "\n\n";
-    cout << setfill(' ')
-         << setw((displayWidth + 29) / 2) << "*******************************"
-         << endl;
-    cout << setw((displayWidth + 29) / 2) << "* Welcome to Miracle Hospital *"
-         << endl;
-    cout << setw((displayWidth + 29) / 2) << "*******************************"
-         << endl;
-    while (true)
-    {
-
-        // Main Menu
-        cout << "\n\n";
-        cout << setfill('-') << setw(displayWidth) << "-" << endl;
-        cout << setfill(' ')
-             << setw((displayWidth + 9) / 2) << "Main Menu" << endl;
-        cout << setfill('-') << setw(displayWidth) << "-" << endl;
-    b:
-        cout << "1,Register \n2,Login  \n3,Exit  \nChooste an option: ";
-
-        cin >> choice;
-        if (cin.fail())
-        {
-            cin.clear();
-            cin.ignore();
-            cout << "\nEnter number only\n";
-            goto b;
-        }
-
-        if (choice == 1)
-        {
-            registerNewUser();
-        }
-        else if (choice == 2)
-        {
-            loginUser();
-        }
-        else if (choice == 3)
-        {
-            cout << "Exiting the system.\n";
-            break;
-        }
-        else
-        {
-            cout << "Invalid choice. Please try again.\n";
-        }
-    }
-
-    // Clean up database connection
-    if (g_db)
-    {
-        g_db->close();
-        delete g_db;
-        g_db = nullptr;
-    }
-
-    return 0;
 }
-
-
-
-
