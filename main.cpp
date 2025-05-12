@@ -5,13 +5,12 @@
  * 2. Bekam Yoseph       ID: ETS0240/16
  * 3. Befiker Kassahun   ID: ETS0236/16
  * 4. Barok Yeshiber     ID: ETS0224/16
- * 5. Addisalem Hailay   ID: ETS0100/16
- * 6. Bethelhem Degefu   ID: ETS0283/16
-
+ * 5. Bethelhem Degefu   ID: ETS0283/16
+ * 6. Addisalem Hailay   ID: ETS0100/16
 
  */
-#include<iostream>
 
+#include <iostream>
 #include <unordered_map> // For storing user credentials and other mappings
 #include <string>
 #include <cctype>  // For character checks
@@ -43,10 +42,9 @@ void registerUser(int userId, const string &name, const string &password, const 
 void loginUser();
 void registerNewUser();
 void patientManagement();
-void add();
-void updatePatient();
+void addPatient();
+void deletePatient();
 void displayPatients();
-void search();
 void bookAppointment();
 void cancelAppointment();
 void displayAppointments();
@@ -55,8 +53,6 @@ void registerNewStaff();
 void registerStaff(const string &name, const string &role);
 void removeStaff();
 void staffManagement();
-void markAttendance(struct Staff staffList[], int size, const string &name, bool status);
-void displayAttendance(const Staff staffList[], int size);
 void initialSlots();
 int idGenerator();
 
@@ -253,7 +249,7 @@ c:
         goto c;
     }
 
-    if (authenticate(userId, password))
+    if (authenticate(userId , password))
     {
         cout << "Login successful! Welcome, " << g_db->getUserName(userId) << "!\n";
 
@@ -333,7 +329,7 @@ void patientManagement()
     do
     {
         cout << "\n================= Patient Management Menu =================";
-        cout << "\n\t\t1. Add Patients   \n\t\t2. View Patients' Information     \n\t\t5. Back to Admin Portal Menu";
+        cout << "\n\t\t1. Add Patients   \n\t\t2. Update Patients' Information   \n\t\t3. View Patients' Information   \n\t\t4. Search for a patient  \n\t\t5. Back to Admin Portal Menu";
     b:
         cout << "\n\n\t\tEnter your choice: ";
         cin >> choice;
@@ -350,9 +346,15 @@ void patientManagement()
             add();
             break;
         case 2:
-            displayPatients();
+            updatePatient();
             break;
         case 3:
+            displayPatients();
+            break;
+        case 4:
+            search();
+            break;
+        case 5:
             return;
         default:
             cout << "\nInvalid input!"
@@ -451,6 +453,88 @@ b:
     }
 }
 
+// updating the patients data
+void updatePatient()
+{
+    int patientId;
+    string name, gender, description;
+    int age;
+    float weight, height;
+
+    cout << "Enter the patient ID to update: ";
+    cin >> patientId;
+
+    // Fetch the patient's details from the database using their ID
+    if (!g_db->getPatientById(patientId, name, gender, age, weight, height, description))
+    {
+        cout << "Patient not found.\n";
+        return;
+    }
+
+    cout << "Current details:\n"; // Display the current details of the patient
+    cout << left << setw(20) << "Name"
+         << setw(10) << "Gender"
+         << setw(15) << "ID"
+         << setw(10) << "Age"
+         << setw(10) << "Weight"
+         << setw(10) << "Height"
+         << setw(20) << "Medical History" << "\n";
+    cout << string(95, '-') << "\n";
+    cout << left << setw(20) << name
+         << setw(10) << gender
+         << setw(15) << patientId
+         << setw(10) << age
+         << setw(10) << fixed << setprecision(1) << weight
+         << setw(10) << fixed << setprecision(2) << height
+         << setw(20) << description << "\n";
+    cout << "Enter new details (leave blank to keep current value):\n";
+    cout << "Name: ";
+    string newName;
+    cin.ignore();
+    getline(cin, newName);
+    if (!newName.empty())
+        name = newName;
+
+    cout << "Gender: ";
+    string newGender;
+    getline(cin, newGender);
+    if (!newGender.empty())
+        gender = newGender;
+
+    cout << "Age: ";
+    string newAge;
+    getline(cin, newAge);
+    if (!newAge.empty())
+        age = stoi(newAge);
+    cout << "Weight: ";
+    string newWeight;
+    getline(cin, newWeight);
+    if (!newWeight.empty())
+        weight = stof(newWeight);
+
+    cout << "Height: ";
+    string newHeight;
+    getline(cin, newHeight);
+    if (!newHeight.empty())
+        height = stof(newHeight);
+
+    cout << "Medical History: ";
+    string newDescription;
+    getline(cin, newDescription);
+    if (!newDescription.empty())
+        description = newDescription;
+    // Update the patient in the database
+    if (g_db->updatePatient(patientId, name, gender, age, weight, height, description))
+    {
+        cout << "Patient updated successfully!\n";
+    }
+    else
+    {
+        cout << "Failed to update patient.\n";
+    }
+    
+}
+
 // Function to display all patients' information
 void displayPatients()
 {
@@ -473,7 +557,43 @@ void displayPatients()
     g_db->getAllPatients(patientCallback); // Call the getAllPatients function with the patientCallback function as the callback parameter
 }
 
+// Function to search for a patient
+void search()
+{
+   cout << "Enter the patient ID to search: ";
+    int searchId;
+    cin >> searchId;
 
+    // Fetch the patient's details from the database using their ID
+    string name, gender, description;
+    int age;
+    float weight, height;
+
+    if (!g_db->getPatientById(searchId, name, gender, age, weight, height, description))
+    {
+        cout << "Patient not found.\n";
+        return;
+    }
+
+    cout << "Patient found:\n";
+    cout << left << setw(20) << "Name"
+         << setw(10) << "Gender"
+         << setw(15) << "ID"
+         << setw(10) << "Age"
+         << setw(10) << "Weight"
+         << setw(10) << "Height"
+         << setw(20) << "Medical History" << "\n";
+    cout << string(95, '-') << "\n";
+    cout << left << setw(20) << name
+         << setw(10) << gender
+         << setw(15) << searchId
+         << setw(10) << age
+         << setw(10) << fixed << setprecision(1) << weight
+         << setw(10) << fixed << setprecision(2) << height
+         << setw(20) << description << "\n";
+    cout << "Patient details displayed successfully!\n";
+    // Display the patient's details
+}
 
 void registerStaff(const string &name, const string &role)
 {
@@ -563,48 +683,6 @@ void removeStaff()
 
 
 // === Staff Attendance ===
-vector<Staff> fetchAllStaff() {
-    vector<Staff> staffList;
-    sqlite3_stmt* stmt;
-    const char* query = "SELECT staff_id, name, is_present FROM staff";
-
-    if (sqlite3_prepare_v2(g_db->getDB(), query, -1, &stmt, nullptr) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            Staff s;
-            s.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-            s.isPresent = sqlite3_column_int(stmt, 2);
-            staffList.push_back(s);
-        }
-    } else {
-        cerr << "Failed to fetch staff." << endl;
-    }
-    sqlite3_finalize(stmt);
-    return staffList;
-}
-
-void markAttendanceInDB(const string& name, bool isPresent) {
-    sqlite3_stmt* stmt;
-    const char* sql = "UPDATE staff SET is_present = ? WHERE name = ?";
-
-    if (sqlite3_prepare_v2(g_db->getDB(), sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, isPresent ? 1 : 0);
-        sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
-
-        if (sqlite3_step(stmt) == SQLITE_DONE)
-            cout << "Attendance updated for " << name << ".\n";
-        else
-            cerr << "Failed to update attendance.\n";
-    }
-    sqlite3_finalize(stmt);
-}
-
-void displayAttendance() {
-    auto staffList = fetchAllStaff();
-    for (const auto& s : staffList) {
-        cout << "Name: " << s.name << " | Status: "
-             << (s.isPresent ? "Present" : "Absent") << endl;
-    }
-}
 // Sub menu for staff management
 void staffManagement()
 {
@@ -624,7 +702,7 @@ void staffManagement()
              << endl;
         cout << setfill('=') << setw(displayWidth) << "=" << endl;
 
-        cout << "\n\t\t1. Mark Attendance   \n\t\t2. Display Staff and Attendance    \n\t\t3. Add staff  \n\t\t4. Remove staff   \n\t\t5. Back to Admin Portal Menu \n\t\tEnter your choice: ";
+        cout << "\n\t\t1. Add staff  \n\t\t4. Remove staff   \n\t\t5. Back to Admin Portal Menu \n\t\tEnter your choice: ";
     a:
         cin >> choice;
         if (cin.fail())
@@ -637,23 +715,12 @@ void staffManagement()
         switch (choice)
         {
         case 1:
-            cout << "Enter staff name: ";
-            cin.ignore();
-            getline(cin, name);
-            cout << "Enter status (1 for Present, 0 for Absent): ";
-            cin >> status;
-            markAttendanceInDB(name, status);
-            break;
-        case 2:
-            displayAttendance();
-            break;
-        case 3:
             registerNewStaff();
             break;
-        case 4:
+        case 2:
             removeStaff();
             break;
-        case 5:
+        case 3:
             adminPanel();
             break;
         default:
@@ -663,36 +730,6 @@ void staffManagement()
     } while (choice != 5);
 }
 
-// Function to manage attendance
-void markAttendance(Staff staffList[], int size, const string &name, bool status)
-{
-    if (cin.fail())
-    {
-        cin.clear();
-        cin.ignore();
-    }
-    for (int i = 0; i < size; ++i)
-    {
-        if (staffList[i].name == name)
-        {
-            staffList[i].isPresent = status;
-            cout << "\n\t" << name << " marked as " << (status ? "Present" : "Absent") << "." << endl;
-            return;
-        }
-    }
-    cout << "\n\tStaff member " << name << " not found!" << endl;
-}
-
-// Function to display attendance
-void displayAttendance(const Staff staffList[], int size)
-{
-    cout << "\nAttendance Status:\n";
-    for (int i = 0; i < size; ++i)
-    {
-        cout << "\t\tName: " << staffList[i].name
-             << ", Status: " << (staffList[i].isPresent ? "Present" : "Absent") << endl;
-    }
-}
 
 // Function to display all booked appointments for the admin
 void displayBookedAppointments()
