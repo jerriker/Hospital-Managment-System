@@ -36,7 +36,7 @@ public:
     
     // Appointment management
     bool initializeAppointmentSlots();
-    bool bookAppointment(int day, int slot, int appointmentId, const std::string &patientName);
+    bool bookAppointment(int appointmentId, const std::string &patientName);
     bool cancelAppointment(int appointmentId);
     bool getAppointmentSlots();
     bool getBookedAppointments();

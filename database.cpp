@@ -1,6 +1,5 @@
 #include "database.h"
 
-
 // Callback function for query results
 static int callback(void *data, int argc, char **argv, char **azColName)
 {
@@ -52,11 +51,8 @@ bool Database::open()
                             "description TEXT)");
 
     success &= executeQuery("CREATE TABLE IF NOT EXISTS appointments ("
-                            "appointment_id INTEGER PRIMARY KEY,"
-                            "day INTEGER,"
-                            "slot INTEGER,"
-                            "patient_name TEXT,"
-                            "UNIQUE(day, slot))");
+                            "id INTEGER PRIMARY KEY, "
+                            "appointment_date TEXT NOT NULL)");
 
     success &= executeQuery("CREATE TABLE IF NOT EXISTS staff ("
                             "staff_id INTEGER PRIMARY KEY UNIQUE,"
@@ -214,7 +210,6 @@ bool Database::checkStaff(int adminId)
     return !result.empty();
 };
 
-
 bool Database::deleteStaff(int staff_id)
 {
     std::string query = "delete from staff where staff_id = " + staff_id;
@@ -257,12 +252,12 @@ bool Database::getBookedAppointments()
 }
 
 // Implementation for bookAppointment method
-bool Database::bookAppointment(int day, int slot, int appointmentId, const std::string &patientName)
-{
-    std::string query = "UPDATE appointments SET patient_name = '" + patientName + "', appointment_id = " +
-                        std::to_string(appointmentId) + " WHERE day = " + std::to_string(day) +
-                        " AND slot = " + std::to_string(slot);
-    return executeQuery(query);
+bool Database::bookAppointment(int appointmentId, const std::string& appointmentDate) {
+    std::string sql = "INSERT INTO appointments (id, appointment_date) VALUES (" +
+                      std::to_string(appointmentId) + ", '" +
+                      appointmentDate + "');";
+
+    return executeQuery(sql);
 }
 
 // Implementation for cancelAppointment method
@@ -308,7 +303,7 @@ bool Database::checkDatabaseFile()
 }
 // Patient management methods
 bool Database::addPatient(int patientId, const std::string &name, const std::string &gender, int age,
-                           float weight, float height, const std::string &description)
+                          float weight, float height, const std::string &description)
 {
     std::string query = "INSERT INTO patients (patient_id, name, gender, age, weight, height, description) VALUES (" +
                         std::to_string(patientId) + ", '" + name + "', '" + gender + "', " +
@@ -316,7 +311,7 @@ bool Database::addPatient(int patientId, const std::string &name, const std::str
     return executeQuery(query);
 }
 
-bool Database::getAllPatients(int (*callback)(void*, int, char**, char**))
+bool Database::getAllPatients(int (*callback)(void *, int, char **, char **))
 {
     std::string query = "SELECT name, gender, patient_id, age, weight, height, description FROM patients";
     return executeQueryWithCallback(query, callback, nullptr);
