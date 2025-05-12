@@ -545,7 +545,7 @@ void displayPatients()
                  << setw(10) << argv[1]
                  << setw(15) << argv[2]
                  << setw(10) << argv[3]
-                 << setw(10) << fixed << setprecision(1) << argv[4] << setw(10) << fixed << setprecision(2) << argv[5] << setw(20) << argv[6] << "\n"; // Fix width to match header and display data from database columns argv[0] to argv[6] (name, gender, age, weight, height, description) respectively.
+                 << setw(10) << fixed << setprecision(1) << argv[4] << setw(10) << fixed << setprecision(2) << argv[5] << setw(20) << argv[6] << "\n";
         }
         return 0; // Return 0 to indicate successful callback execution
     };

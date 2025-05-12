@@ -1,6 +1,5 @@
- # Hospital-Managment-System
+# Hospital-Managment-System
 # Group Members
-<<<<<<< HEAD
 
 | Member Name           |    ID Number   |
 | --------------------- | -------------- |
@@ -48,5 +47,57 @@ Ensures data confidentiality and operational control
 - C++ compiler with C++17 support
 - SQLite3 library
 - MinGW (for Windows users)
-=======
->>>>>>> parent of fb27a15 (Merge branch 'main' of https://github.com/jerriker/Hospital-Managment-System)
+
+# How to compile and run
+  1. Clone the repository: https://github.com/jerriker/Hospital-Managment-System/blob/main/main.cpp
+  2. Navigate to the project directory:
+
+  3. Compile the project:
+  4. Run the Path
+
+# Project Structure
+
+# Database schema
+# Tables
+# 1. Users
+Stores login credentials and roles for system users (e.g., admin, doctor, receptionist).
+
+| Column   | Type    | Constraints                          |
+|----------|---------|--------------------------------------|
+| user_id  | INTEGER | Primary Key, Auto-Increment          |
+| name     | TEXT    | Not Null, Unique                     |
+| password | TEXT    | Not Null                             |
+| role     | TEXT    | Not Null (e.g., admin, doctor)       |
+
+# 2. Patients
+Holds basic patient information and medical notes.
+
+| Column      | Type    | Constraints                      |
+|-------------|---------|----------------------------------|
+| patient_id  | INTEGER | Primary Key, Auto-Increment      |
+| name        | TEXT    | Not Null                         |
+| gender      | TEXT    | Not Null                         |
+| age         | INTEGER |                                  |
+| weight      | REAL    |                                  |
+| height      | REAL    |                                  |
+| description | TEXT    |                                  |
+
+
+# 3. Appointments
+Tracks available and booked appointment slots.
+
+| Column       | Type        | Constraints                                  |
+| ------------ | ----------- | -------------------------------------------- |
+| patient_id   | INTEGER     | Primary Key
+| appointment_date|     TEXT    |Not Null                                    |
+
+
+# 4. Staff
+Manages hospital staff details and attendance tracking.
+
+| Column     | Type    | Constraints                     |
+|------------|---------|---------------------------------|
+| staff_id   | INTEGER | Primary Key, Auto-Increment     |
+| name       | TEXT    | Not Null, Unique                |
+| role       | TEXT    | Not Null                        |
+| is_present | BOOLEAN | Default: 0 (false, not present) |
