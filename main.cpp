@@ -6,7 +6,10 @@
  * 3. Befiker Kassahun   ID: ETS0236/16
  * 4. Barok Yeshiber     ID: ETS0224/16
  * 5. Bethelhem Degefu   ID: ETS0283/16
+ * 6. Addisalem Hailay   ID: ETS0100/16
+
  */
+
 #include <iostream>
 #include <unordered_map> // For storing user credentials and other mappings
 #include <string>
@@ -114,30 +117,30 @@ int idGenerator()
     return rand() % 10000 + 1;
 }
 
-// Functions used in user authentication
-// A map to store user credentials (ID, Password, Name, Role)
+//Functions used in user authentication  
+// A map to store user credentials (ID, Password, Name, Role)  
 unordered_map<int, pair<string, pair<string, string>>> userCredentials; // User ID -> {Name, {Password, Role}}
 
-// Function to check if the password is strong
+// Function to check if the password is strong 
 bool isStrongPassword(const string &password)
 {
-    if (password.length() < 8)
-        return false;
-    bool hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;
+if (password.length() <8) 
+return false;  
+bool hasLower =false, hasUpper= false, hasDigit= false, hasSpecial= false; 
 
-    for (char c : password)
-    {
-        if (islower(c))
-            hasLower = true;
-        if (isupper(c))
-            hasUpper = true;
-        if (isdigit(c))
-            hasDigit = true;
-        if (!isalnum(c))
-            hasSpecial = true;
-    }
-    return hasLower && hasUpper && hasDigit && hasSpecial;
+for (char c: password) 
+{
+if (islower(c)) 
+hasLower =true; 
+if (isupper(c)) 
+hasUpper= true ;
+if (isdigit(c)) 
+hasDigit= true ;
+if (!isalnum(c))
+hasSpecial =true; 
 }
+return hasLower && hasUpper && hasDigit && hasSpecial ;
+} 
 
 // Function to register a new user
 void registerUser(int userId, const string &name, const string &password, const string &role)
@@ -445,160 +448,154 @@ b:
         cin.ignore();
         getline(cin, p_discription[i]);
         cout << "Patient added successfully!\n";
+        // Add the patient to the database
+        if (!g_db->addPatient(pid[i], pname[i], gender[i], age[i], weight[i], height[i], p_discription[i]))
+        {
+            cout << "Failed to add patient to the database.\n";
+        }
     }
 }
 
 // updating the patients data
 void updatePatient()
 {
-    int num2;
-a:
-    cout << "Enter the number of patients you want to update\n";
-    cin >> num2;
-    cin.get();
-    if (cin.fail() || num2 <= 0)
+    int patientId;
+    string name, gender, description;
+    int age;
+    float weight, height;
+
+    cout << "Enter the patient ID to update: ";
+    cin >> patientId;
+
+    // Fetch the patient's details from the database using their ID
+    if (!g_db->getPatientById(patientId, name, gender, age, weight, height, description))
     {
-        cout << "Please enter a valid number!\n";
-        goto a;
+        cout << "Patient not found.\n";
+        return;
     }
-    for (int k = 0; k < num2; k++)
+
+    cout << "Current details:\n"; // Display the current details of the patient
+    cout << left << setw(20) << "Name"
+         << setw(10) << "Gender"
+         << setw(15) << "ID"
+         << setw(10) << "Age"
+         << setw(10) << "Weight"
+         << setw(10) << "Height"
+         << setw(20) << "Medical History" << "\n";
+    cout << string(95, '-') << "\n";
+    cout << left << setw(20) << name
+         << setw(10) << gender
+         << setw(15) << patientId
+         << setw(10) << age
+         << setw(10) << fixed << setprecision(1) << weight
+         << setw(10) << fixed << setprecision(2) << height
+         << setw(20) << description << "\n";
+    cout << "Enter new details (leave blank to keep current value):\n";
+    cout << "Name: ";
+    string newName;
+    cin.ignore();
+    getline(cin, newName);
+    if (!newName.empty())
+        name = newName;
+
+    cout << "Gender: ";
+    string newGender;
+    getline(cin, newGender);
+    if (!newGender.empty())
+        gender = newGender;
+
+    cout << "Age: ";
+    string newAge;
+    getline(cin, newAge);
+    if (!newAge.empty())
+        age = stoi(newAge);
+    cout << "Weight: ";
+    string newWeight;
+    getline(cin, newWeight);
+    if (!newWeight.empty())
+        weight = stof(newWeight);
+
+    cout << "Height: ";
+    string newHeight;
+    getline(cin, newHeight);
+    if (!newHeight.empty())
+        height = stof(newHeight);
+
+    cout << "Medical History: ";
+    string newDescription;
+    getline(cin, newDescription);
+    if (!newDescription.empty())
+        description = newDescription;
+    // Update the patient in the database
+    if (g_db->updatePatient(patientId, name, gender, age, weight, height, description))
     {
-    d:
-        cout << "Enter the name of patient " << k + 1 << " to update: ";
-        string name;
-        getline(cin, name);
-
-        bool found = false;
-        for (int i = 0; i < num; i++)
-        {
-            if (name == pname[i])
-            {
-                found = true;
-                cout << "Patient found. Current details:\n";
-                cout << left << setw(20) << "Name"
-                     << setw(10) << "Gender"
-                     << setw(15) << "ID"
-                     << setw(10) << "Age"
-                     << setw(10) << "Weight"
-                     << setw(10) << "Height"
-                     << setw(20) << "Medical History" << "\n";
-                cout << string(95, '-') << "\n";
-                cout << left << setw(20) << pname[i]
-                     << setw(10) << gender[i]
-                     << setw(15) << pid[i]
-                     << setw(10) << age[i]
-                     << setw(10) << fixed << setprecision(1) << weight[i]
-                     << setw(10) << fixed << setprecision(2) << height[i]
-                     << setw(20) << p_discription[i] << "\n";
-
-                // Updating details
-                cout << "Enter new details for the patient (leave blank to retain current value):\n";
-
-                cout << "Name [" << pname[i] << "]: ";
-                string newName;
-                getline(cin, newName);
-                if (!newName.empty())
-                    pname[i] = newName;
-
-                cout << "Gender (1. Male, 2. Female) [" << gender[i] << "]: ";
-                int newGender;
-                cin >> newGender;
-                cin.ignore(); // Clear input buffer
-                if (newGender == 1)
-                    gender[i] = "Male";
-                else if (newGender == 2)
-                    gender[i] = "Female";
-
-                cout << "ID [" << pid[i] << "]: ";
-                string newID;
-                getline(cin, newID);
-                if (!newID.empty())
-                    pid[i] = stoi(newID);
-
-                cout << "Age [" << age[i] << "]: ";
-                int newAge;
-                cin >> newAge;
-                cin.ignore();
-                if (newAge > 0)
-                    age[i] = newAge;
-
-                cout << "Weight [" << weight[i] << "]: ";
-                double newWeight;
-                cin >> newWeight;
-                cin.ignore();
-                if (newWeight > 0)
-                    weight[i] = newWeight;
-
-                cout << "Height [" << height[i] << "]: ";
-                double newHeight;
-                cin >> newHeight;
-                cin.ignore();
-                if (newHeight > 0)
-                    height[i] = newHeight;
-
-                cout << "Medical History [" << p_discription[i] << "]: ";
-                string newHistory;
-                getline(cin, newHistory);
-                if (!newHistory.empty())
-                    p_discription[i] = newHistory;
-
-                cout << "Patient record updated successfully!\n";
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            cout << "Patient with the name \"" << name << "\" not found.\n";
-            goto d;
-        }
+        cout << "Patient updated successfully!\n";
     }
+    else
+    {
+        cout << "Failed to update patient.\n";
+    }
+    
 }
 
 // Function to display all patients' information
 void displayPatients()
 {
-    cout << "\n================= Patient Medical Records ================\n";
-    cout << left << setw(20) << " Name" << setw(10) << "Gender" << setw(15) << "ID" << setw(10) << "Age" << setw(10) << "Weight" << setw(10) << "Height" << setw(20) << "Medical history" << "\n";
+    cout << "\n=== Patient Medical Records ===\n";
+    cout << left << setw(20) << "Name" << setw(10) << "Gender" << setw(15) << "ID" << setw(10) << "Age" << setw(10) << "Weight" << setw(10) << "Height" << setw(20) << "Medical history" << "\n";
     cout << string(95, '-') << "\n";
-
-    for (int i = 0; i < num; i++)
+    // Fetch all patients from the database and display them
+    auto patientCallback = [](void *data, int argc, char **argv, char **azColName) -> int
     {
-        cout << left << setw(20) << pname[i]
-             << setw(10) << gender[i]
-             << setw(15) << pid[i]
-             << setw(10) << age[i] << setw(10) << setprecision(2) << weight[i] << setw(10) << setprecision(2) << height[i] << setw(20) << fixed << p_discription[i] << "\n";
-    }
+        if (argc > 0 && argv[0])
+        {
+            cout << left << setw(20) << argv[0]
+                 << setw(10) << argv[1]
+                 << setw(15) << argv[2]
+                 << setw(10) << argv[3]
+                 << setw(10) << fixed << setprecision(1) << argv[4] << setw(10) << fixed << setprecision(2) << argv[5] << setw(20) << argv[6] << "\n"; // Fix width to match header and display data from database columns argv[0] to argv[6] (name, gender, age, weight, height, description) respectively.
+        }
+        return 0; // Return 0 to indicate successful callback execution
+    };
+    g_db->getAllPatients(patientCallback); // Call the getAllPatients function with the patientCallback function as the callback parameter
 }
 
 // Function to search for a patient
 void search()
 {
-    cout << "Enter the name of the patient: ";
-    cin.ignore(); // Move this before getline
-    getline(cin, name);
+   cout << "Enter the patient ID to search: ";
+    int searchId;
+    cin >> searchId;
 
-    bool found = false; // Add flag to check if patient was found
-    for (int i = 0; i < num; i++)
+    // Fetch the patient's details from the database using their ID
+    string name, gender, description;
+    int age;
+    float weight, height;
+
+    if (!g_db->getPatientById(searchId, name, gender, age, weight, height, description))
     {
-        if (name == pname[i])
-        {
-            found = true;
-            cout << "\n=== Patient Medical Records ===\n";
-            cout << left << setw(20) << "Name" << setw(10) << "Gender" << setw(15) << "ID" << setw(10) << "Age" << setw(10) << "Weight" << setw(10) << "Height" << setw(20) << "Medical history" << "\n";
-            cout << string(95, '-') << "\n";
-            cout << left << setw(20) << pname[i]
-                 << setw(10) << gender[i]
-                 << setw(15) << pid[i] // Fix width to match header
-                 << setw(10) << age[i] << setw(10) << setprecision(2) << weight[i] << setw(10) << setprecision(2) << height[i] << setw(20) << fixed << p_discription[i] << "\n";
-            break;
-        }
+        cout << "Patient not found.\n";
+        return;
     }
 
-    if (!found)
-    {
-        cout << "Patient with name \"" << name << "\" not found.\n";
-    }
+    cout << "Patient found:\n";
+    cout << left << setw(20) << "Name"
+         << setw(10) << "Gender"
+         << setw(15) << "ID"
+         << setw(10) << "Age"
+         << setw(10) << "Weight"
+         << setw(10) << "Height"
+         << setw(20) << "Medical History" << "\n";
+    cout << string(95, '-') << "\n";
+    cout << left << setw(20) << name
+         << setw(10) << gender
+         << setw(15) << searchId
+         << setw(10) << age
+         << setw(10) << fixed << setprecision(1) << weight
+         << setw(10) << fixed << setprecision(2) << height
+         << setw(20) << description << "\n";
+    cout << "Patient details displayed successfully!\n";
+    // Display the patient's details
 }
 
 void registerStaff(const string &name, const string &role)
