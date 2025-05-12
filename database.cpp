@@ -1,5 +1,6 @@
 #include "database.h"
 
+
 // Callback function for query results
 static int callback(void *data, int argc, char **argv, char **azColName)
 {
