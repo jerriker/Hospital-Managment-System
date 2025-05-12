@@ -88,10 +88,9 @@ Tracks available and booked appointment slots.
 
 | Column       | Type        | Constraints                                  |
 | ------------ | ----------- | -------------------------------------------- |
-| day          | INTEGER     | Not Null                                     |
-| slot         | INTEGER     | Not Null                                     |
-| patient_name | TEXT        | Not Null (e.g., 'Available' or patient name) |
-| PRIMARY KEY  | (day, slot) | Composite Primary Key                        |
+| patient_id   | INTEGER     | Primary Key
+| appointment_date|     TEXT    |Not Null                                    |
+
 
 # 4. Staff
 Manages hospital staff details and attendance tracking.
@@ -100,4 +99,5 @@ Manages hospital staff details and attendance tracking.
 |------------|---------|---------------------------------|
 | staff_id   | INTEGER | Primary Key, Auto-Increment     |
 | name       | TEXT    | Not Null, Unique                |
+| role       | TEXT    | Not Null                        |
 | is_present | BOOLEAN | Default: 0 (false, not present) |
