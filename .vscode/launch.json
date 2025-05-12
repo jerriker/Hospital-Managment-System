@@ -53,8 +53,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/hp/OneDrive/Documents/GitHub/Hospital-Managment-System",
-      "program": "c:/Users/hp/OneDrive/Documents/GitHub/Hospital-Managment-System/build/Debug/outDebug",
+      "cwd": "c:/Users/hp/Documents/Cpp/Group_project/Hospital-Managment-System",
+      "program": "c:/Users/hp/Documents/Cpp/Group_project/Hospital-Managment-System/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
