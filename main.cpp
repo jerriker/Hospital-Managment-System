@@ -111,30 +111,6 @@ int idGenerator()
     return rand() % 10000 + 1;
 }
 
-// Functions used in user authentication
-// A map to store user credentials (ID, Password, Name, Role)
-unordered_map<int, pair<string, pair<string, string>>> userCredentials; // User ID -> {Name, {Password, Role}}
-
-// Function to check if the password is strong
-bool isStrongPassword(const string &password)
-{
-    if (password.length() < 8)
-        return false;
-    bool hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;
-
-    for (char c : password)
-    {
-        if (islower(c))
-            hasLower = true;
-        if (isupper(c))
-            hasUpper = true;
-        if (isdigit(c))
-            hasDigit = true;
-        if (!isalnum(c))
-            hasSpecial = true;
-    }
-    return hasLower && hasUpper && hasDigit && hasSpecial;
-}
 
 // Function to register a new user
 void registerUser(int userId, const string &name, const string &password, const string &role)
