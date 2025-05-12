@@ -595,17 +595,6 @@ void search()
     // Display the patient's details
 }
 
-void registerStaff(const string &name, const string &role)
-{
-    if (g_db && g_db->addStaff(name, role))
-    {
-        cout << "Staff " << name << " registered successfully with role: " << role << endl;
-    }
-    else
-    {
-        cout << "Failed to register user." << endl;
-    }
-}
 
 // Function to display the staff attendance system
 void registerNewStaff()
@@ -633,7 +622,14 @@ a:
         c = std::tolower(c);
     } // change to lowercase
 
-    registerStaff(name, role);
+        if (g_db && g_db->addStaff(name, role))
+    {
+        cout << "Staff " << name << " registered successfully with role: " << role << endl;
+    }
+    else
+    {
+        cout << "Failed to register user." << endl;
+    }
 }
 
 void removeStaff()
