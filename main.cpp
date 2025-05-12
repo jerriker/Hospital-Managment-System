@@ -113,7 +113,7 @@ int idGenerator()
 
 //Functions used in user authentication  
 // A map to store user credentials (ID, Password, Name, Role)  
-unordered_ map<int, pair<string, pair<string, string>> userCredentials; // User ID -> {Name, {Password, Role}}
+unordered_map<int, pair<string, pair<string, string>>> userCredentials; // User ID -> {Name, {Password, Role}}
 
 // Function to check if the password is strong 
 bool isStrongPassword(const string &password)
