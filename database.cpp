@@ -1,5 +1,6 @@
 #include "database.h"
 
+
 // Callback function for query results
 static int callback(void *data, int argc, char **argv, char **azColName)
 {
@@ -58,8 +59,9 @@ bool Database::open()
                             "UNIQUE(day, slot))");
 
     success &= executeQuery("CREATE TABLE IF NOT EXISTS staff ("
-                            "staff_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                            "staff_id INTEGER PRIMARY KEY UNIQUE,"
                             "name TEXT UNIQUE NOT NULL,"
+                            "role TEXT NOT NULL,"
                             "is_present BOOLEAN DEFAULT 0)");
 
     if (!success)
@@ -185,6 +187,39 @@ std::string Database::getUserName(int userId)
     executeQueryWithCallback(query, nameCallback, &name);
     return name;
 }
+
+// Staff management methods
+
+bool Database::addStaff(const std::string &name, const std::string &role)
+{
+    std::string query = "INSERT INTO staff (name, role) VALUES ('" + name + "', '" + role + "')";
+    return executeQuery(query);
+}
+bool Database::checkStaff(int adminId)
+{
+    std::string result = "";
+    std::string query = "SELECT role FROM staff WHERE staff_id = " + std::to_string(adminId);
+
+    auto roleCallback = [](void *data, int argc, char **argv, char **azColName) -> int
+    {
+        std::string *result = static_cast<std::string *>(data);
+        if (argc > 0 && argv[0])
+        {
+            *result = argv[0];
+        }
+        return 0;
+    };
+
+    executeQueryWithCallback(query, roleCallback, &result);
+    return !result.empty();
+};
+
+
+bool Database::deleteStaff(int staff_id)
+{
+    std::string query = "delete from staff where staff_id = " + staff_id;
+    return executeQuery(query);
+};
 
 // Implementation for initializeAppointmentSlots method
 bool Database::initializeAppointmentSlots()

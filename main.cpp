@@ -5,12 +5,13 @@
  * 2. Bekam Yoseph       ID: ETS0240/16
  * 3. Befiker Kassahun   ID: ETS0236/16
  * 4. Barok Yeshiber     ID: ETS0224/16
- * 5. Bethelhem Degefu   ID: ETS0283/16
- * 6. Addisalem Hailay   ID: ETS0100/16
+ * 5. Addisalem Hailay   ID: ETS0100/16
+ * 6. Bethelhem Degefu   ID: ETS0283/16
+
 
  */
+#include<iostream>
 
-#include <iostream>
 #include <unordered_map> // For storing user credentials and other mappings
 #include <string>
 #include <cctype>  // For character checks
@@ -30,7 +31,7 @@
 using namespace std;
 
 // Global database object
-Database* g_db = nullptr;
+Database *g_db = nullptr;
 const string dbPath = "hospital.db";
 
 // Function declarations
@@ -50,6 +51,9 @@ void bookAppointment();
 void cancelAppointment();
 void displayAppointments();
 void displayBookedAppointments();
+void registerNewStaff();
+void registerStaff(const string &name, const string &role);
+void removeStaff();
 void staffManagement();
 void markAttendance(struct Staff staffList[], int size, const string &name, bool status);
 void displayAttendance(const Staff staffList[], int size);
@@ -174,25 +178,47 @@ a:
     cout << "Enter your role (Admin/Patient): ";
     cin >> role;
 
-    // Generate a unique 4-digit ID
-    userId = rand() % 9000 + 1000;
+    for (char &c : role)
+    {
+        c = std::tolower(c);
+    } // change to lowercase
 
     // Make sure the database is open before registering
 
     if (!g_db || !g_db->open())
     {
-        
         cout << "Error: Database connection failed. Please try again later.\n";
         return;
     }
 
-    registerUser(userId, name, password, role);
+    if (role == "admin")
+    {
+        int admin_id;
+        cout << "Enter your Admin ID given from your manager: ";
+        cin >> admin_id;
+        if (g_db->checkStaff(admin_id))
+        {
+            registerUser(admin_id, name, password, role);
+        }
+        else
+        {
+            cout << "Don't try to cheat! If you are staff ask the manager!";
+        };
+    }
+    else
+    {
+        // Generate a unique 4-digit ID
+        userId = rand() % 9000 + 1000;
+        registerUser(userId, name, password, role);
+    }
 }
 
 // Function to authenticate a user
-bool authenticate(int userId, const string &password) {
+bool authenticate(int userId, const string &password)
+{
     // Make sure the database is open
-    if (!g_db || !g_db->open()) {
+    if (!g_db || !g_db->open())
+    {
         cout << "Error: Database connection failed. Please try again later.\n";
         return false;
     }
@@ -232,7 +258,7 @@ c:
         cout << "Login successful! Welcome, " << g_db->getUserName(userId) << "!\n";
 
         string role = g_db->getUserRole(userId);
-        if (role == "Admin")
+        if (role == "admin")
         {
         d:
             cout << "Please enter your Admin ID to proceed: ";
@@ -449,13 +475,146 @@ void displayPatients()
 
 
 
-// Function to display the staff attendance system
+void registerStaff(const string &name, const string &role)
+{
+    if (g_db && g_db->addStaff(name, role))
+    {
+        cout << "Staff " << name << " registered successfully with role: " << role << endl;
+    }
+    else
+    {
+        cout << "Failed to register user." << endl;
+    }
+}
 
+// Function to display the staff attendance system
+void registerNewStaff()
+{
+    string name, role;
+
+    cout << "Enter the staff name: ";
+    cin.ignore();
+    getline(cin, name);
+a:
+    cout << "Enter the staff role: ";
+    cin >> role;
+
+    // Make sure the database is open before registering
+
+    if (!g_db || !g_db->open())
+    {
+
+        cout << "Error: Database connection failed. Please try again later.\n";
+        return;
+    }
+
+    for (char &c : role)
+    {
+        c = std::tolower(c);
+    } // change to lowercase
+
+    registerStaff(name, role);
+}
+
+void removeStaff()
+{
+    int staff_Id;
+    bool found = false;
+
+    cout << "Enter staff id to remove the database: ";
+    cin >> staff_Id;
+
+    // Handle non-integer input
+    if (cin.fail())
+    {
+        cin.clear();             // clear error flag
+        cin.ignore(10000, '\n'); // discard invalid input
+        cout << "Invalid input. Please enter a numeric staff ID.\n";
+    }
+
+    if (!g_db || !g_db->open())
+    {
+
+        cout << "Error: Database connection failed. Please try again later.\n";
+        return;
+    }
+
+    if (g_db->checkStaff(staff_Id))
+    {
+        g_db->deleteStaff(staff_Id);
+
+        cout << "The staff with id: " << staff_Id << " deleted successfuly!" << endl;
+        found = true;
+    }
+    else
+    {
+        cout << "Incorrect staff id or staff with id ( " << staff_Id << " ) doesn't found!" << endl;
+    }
+
+    if (found)
+    {
+        adminPanel();
+    }
+    else
+    {
+        staffManagement();
+    }
+}
+
+
+// === Staff Attendance ===
+vector<Staff> fetchAllStaff() {
+    vector<Staff> staffList;
+    sqlite3_stmt* stmt;
+    const char* query = "SELECT staff_id, name, is_present FROM staff";
+
+    if (sqlite3_prepare_v2(g_db->getDB(), query, -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            Staff s;
+            s.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            s.isPresent = sqlite3_column_int(stmt, 2);
+            staffList.push_back(s);
+        }
+    } else {
+        cerr << "Failed to fetch staff." << endl;
+    }
+    sqlite3_finalize(stmt);
+    return staffList;
+}
+
+void markAttendanceInDB(const string& name, bool isPresent) {
+    sqlite3_stmt* stmt;
+    const char* sql = "UPDATE staff SET is_present = ? WHERE name = ?";
+
+    if (sqlite3_prepare_v2(g_db->getDB(), sql, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, isPresent ? 1 : 0);
+        sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_TRANSIENT);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE)
+            cout << "Attendance updated for " << name << ".\n";
+        else
+            cerr << "Failed to update attendance.\n";
+    }
+    sqlite3_finalize(stmt);
+}
+
+void displayAttendance() {
+    auto staffList = fetchAllStaff();
+    for (const auto& s : staffList) {
+        cout << "Name: " << s.name << " | Status: "
+             << (s.isPresent ? "Present" : "Absent") << endl;
+    }
+}
 // Sub menu for staff management
 void staffManagement()
 {
-    Staff staffList[MAX_STAFF] = {
-        {"Aschalew", false}, {"Emebet", false}, {"Solomon", false}, {"Ahmed", false}, {"Hanan", false}, {"Askalech", false}, {"Tsion", false}, {"Mulugeta", false}, {"Alemayew", false}, {"Abebe", false}};
+
+    struct Staff
+    {
+        int id;
+        std::string name;
+        bool isPresent;
+    };
     bool status;
     do
     {
@@ -465,7 +624,7 @@ void staffManagement()
              << endl;
         cout << setfill('=') << setw(displayWidth) << "=" << endl;
 
-        cout << "\n\t\t1. Mark Attendance   \n\t\t2. Display Attendance   \n\t\t3. Back to Admin Portal Menu \n\t\tEnter your choice: ";
+        cout << "\n\t\t1. Mark Attendance   \n\t\t2. Display Staff and Attendance    \n\t\t3. Add staff  \n\t\t4. Remove staff   \n\t\t5. Back to Admin Portal Menu \n\t\tEnter your choice: ";
     a:
         cin >> choice;
         if (cin.fail())
@@ -483,18 +642,25 @@ void staffManagement()
             getline(cin, name);
             cout << "Enter status (1 for Present, 0 for Absent): ";
             cin >> status;
-            markAttendance(staffList, MAX_STAFF, name, status);
+            markAttendanceInDB(name, status);
             break;
         case 2:
-            displayAttendance(staffList, MAX_STAFF);
+            displayAttendance();
             break;
         case 3:
-            return;
+            registerNewStaff();
+            break;
+        case 4:
+            removeStaff();
+            break;
+        case 5:
+            adminPanel();
+            break;
         default:
             cout << "\nInvalid choice. Please try again.\n";
             break;
         }
-    } while (choice != 4);
+    } while (choice != 5);
 }
 
 // Function to manage attendance
@@ -717,7 +883,7 @@ i:
             }
         }
         if (found)
-            break;
+            patientPanel();
     }
 
     if (!found)
@@ -825,5 +991,7 @@ int main()
 
     return 0;
 }
+
+
 
 
