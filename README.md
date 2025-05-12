@@ -1,5 +1,6 @@
  # Hospital-Managment-System
 # Group Members
+<<<<<<< HEAD
 
 | Member Name           |    ID Number   |
 | --------------------- | -------------- |
@@ -47,3 +48,5 @@ Ensures data confidentiality and operational control
 - C++ compiler with C++17 support
 - SQLite3 library
 - MinGW (for Windows users)
+=======
+>>>>>>> parent of fb27a15 (Merge branch 'main' of https://github.com/jerriker/Hospital-Managment-System)
