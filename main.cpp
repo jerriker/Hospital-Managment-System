@@ -6,6 +6,7 @@
  * 3. Befiker Kassahun   ID: ETS0236/16
  * 4. Barok Yeshiber     ID: ETS0224/16
  * 5. Bethelhem Degefu   ID: ETS0283/16
+ * 6. Addisalem Hailay   ID: ETS0100/16
  */
 #include <iostream>
 #include <unordered_map> // For storing user credentials and other mappings
