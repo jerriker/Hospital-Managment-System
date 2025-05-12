@@ -17,14 +17,6 @@
 #include <iomanip> // For setw
 #include <cstdlib> // For random number generation
 #include <ctime>   // For seeding the random number generator
-// #ifdef _WIN32
-// #include <direct.h>  // For _getcwd on Windows
-// #include <windows.h> // For LoadLibrary and GetLastError
-// #define GetCurrentDir _getcwd
-// #else
-// #include <unistd.h> // For getcwd on Unix
-// #define GetCurrentDir getcwd
-// #endif
 #include "database.h"
 
 using namespace std;
