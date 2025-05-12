@@ -47,3 +47,6 @@ Ensures data confidentiality and operational control
 - C++ compiler with C++17 support
 - SQLite3 library
 - MinGW (for Windows users)
+
+  # How to compile and run
+  1. Clone the repository: 
