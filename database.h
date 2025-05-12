@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <tuple> // Include this for std::tuple
+#include <tuple>  // Include this for std::tuple
 
 class Database
 {
@@ -31,9 +31,9 @@ public:
     // Patient management
     bool addPatient(int patientId, const std::string &name, const std::string &gender, int age,
                     float weight, float height, const std::string &description);
-    bool getAllPatients(int (*callback)(void *, int, char **, char **)); // Add this to your public methods
+    bool getAllPatients(int (*callback)(void*, int, char**, char**)); // Add this to your public methods
     // Add this to your public methods
-
+    
     // Appointment management
     bool initializeAppointmentSlots();
     bool bookAppointment(int day, int slot, int appointmentId, const std::string &patientName);
@@ -53,7 +53,8 @@ public:
     bool checkDatabaseFile();
 
     // Add getter for the database handle
-    sqlite3 *getDB() { return db; }
+    sqlite3* getDB() { return db; }
 };
 
 #endif // DATABASE_H
+
