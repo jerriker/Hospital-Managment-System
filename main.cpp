@@ -307,7 +307,7 @@ void patientManagement()
     do
     {
         cout << "\n================= Patient Management Menu =================";
-        cout << "\n\t\t1. Add Patients   \n\t\t2. Update Patients' Information   \n\t\t3. View Patients' Information   \n\t\t4. Search for a patient  \n\t\t5. Back to Admin Portal Menu";
+        cout << "\n\t\t1. Add Patients   \n\t\t2. View Patients' Information     \n\t\t5. Back to Admin Portal Menu";
     b:
         cout << "\n\n\t\tEnter your choice: ";
         cin >> choice;
@@ -324,15 +324,9 @@ void patientManagement()
             add();
             break;
         case 2:
-            updatePatient();
-            break;
-        case 3:
             displayPatients();
             break;
-        case 4:
-            search();
-            break;
-        case 5:
+        case 3:
             return;
         default:
             cout << "\nInvalid input!"
@@ -431,88 +425,6 @@ b:
     }
 }
 
-// updating the patients data
-void updatePatient()
-{
-    int patientId;
-    string name, gender, description;
-    int age;
-    float weight, height;
-
-    cout << "Enter the patient ID to update: ";
-    cin >> patientId;
-
-    // Fetch the patient's details from the database using their ID
-    if (!g_db->getPatientById(patientId, name, gender, age, weight, height, description))
-    {
-        cout << "Patient not found.\n";
-        return;
-    }
-
-    cout << "Current details:\n"; // Display the current details of the patient
-    cout << left << setw(20) << "Name"
-         << setw(10) << "Gender"
-         << setw(15) << "ID"
-         << setw(10) << "Age"
-         << setw(10) << "Weight"
-         << setw(10) << "Height"
-         << setw(20) << "Medical History" << "\n";
-    cout << string(95, '-') << "\n";
-    cout << left << setw(20) << name
-         << setw(10) << gender
-         << setw(15) << patientId
-         << setw(10) << age
-         << setw(10) << fixed << setprecision(1) << weight
-         << setw(10) << fixed << setprecision(2) << height
-         << setw(20) << description << "\n";
-    cout << "Enter new details (leave blank to keep current value):\n";
-    cout << "Name: ";
-    string newName;
-    cin.ignore();
-    getline(cin, newName);
-    if (!newName.empty())
-        name = newName;
-
-    cout << "Gender: ";
-    string newGender;
-    getline(cin, newGender);
-    if (!newGender.empty())
-        gender = newGender;
-
-    cout << "Age: ";
-    string newAge;
-    getline(cin, newAge);
-    if (!newAge.empty())
-        age = stoi(newAge);
-    cout << "Weight: ";
-    string newWeight;
-    getline(cin, newWeight);
-    if (!newWeight.empty())
-        weight = stof(newWeight);
-
-    cout << "Height: ";
-    string newHeight;
-    getline(cin, newHeight);
-    if (!newHeight.empty())
-        height = stof(newHeight);
-
-    cout << "Medical History: ";
-    string newDescription;
-    getline(cin, newDescription);
-    if (!newDescription.empty())
-        description = newDescription;
-    // Update the patient in the database
-    if (g_db->updatePatient(patientId, name, gender, age, weight, height, description))
-    {
-        cout << "Patient updated successfully!\n";
-    }
-    else
-    {
-        cout << "Failed to update patient.\n";
-    }
-    
-}
-
 // Function to display all patients' information
 void displayPatients()
 {
@@ -535,43 +447,7 @@ void displayPatients()
     g_db->getAllPatients(patientCallback); // Call the getAllPatients function with the patientCallback function as the callback parameter
 }
 
-// Function to search for a patient
-void search()
-{
-   cout << "Enter the patient ID to search: ";
-    int searchId;
-    cin >> searchId;
 
-    // Fetch the patient's details from the database using their ID
-    string name, gender, description;
-    int age;
-    float weight, height;
-
-    if (!g_db->getPatientById(searchId, name, gender, age, weight, height, description))
-    {
-        cout << "Patient not found.\n";
-        return;
-    }
-
-    cout << "Patient found:\n";
-    cout << left << setw(20) << "Name"
-         << setw(10) << "Gender"
-         << setw(15) << "ID"
-         << setw(10) << "Age"
-         << setw(10) << "Weight"
-         << setw(10) << "Height"
-         << setw(20) << "Medical History" << "\n";
-    cout << string(95, '-') << "\n";
-    cout << left << setw(20) << name
-         << setw(10) << gender
-         << setw(15) << searchId
-         << setw(10) << age
-         << setw(10) << fixed << setprecision(1) << weight
-         << setw(10) << fixed << setprecision(2) << height
-         << setw(20) << description << "\n";
-    cout << "Patient details displayed successfully!\n";
-    // Display the patient's details
-}
 
 // Function to display the staff attendance system
 

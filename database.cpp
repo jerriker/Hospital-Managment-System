@@ -9,7 +9,7 @@ static int callback(void *data, int argc, char **argv, char **azColName)
     }
     std::cout << std::endl;
     return 0;
-} //(is it realy needed!)
+} //(is it really needed!)
 
 Database::Database(const std::string &path) : dbPath(path), db(nullptr) {}
 
@@ -280,140 +280,9 @@ bool Database::addPatient(int patientId, const std::string &name, const std::str
                         std::to_string(age) + ", " + std::to_string(weight) + ", " + std::to_string(height) + ", '" + description + "')";
     return executeQuery(query);
 }
-bool Database::updatePatient(int patientId, const std::string &name, const std::string &gender, int age,
-                              float weight, float height, const std::string &description)
-{
-    std::string query = "UPDATE patients SET name = '" + name + "', gender = '" + gender + "', age = " +
-                        std::to_string(age) + ", weight = " + std::to_string(weight) +
-                        ", height = " + std::to_string(height) + ", description = '" + description +
-                        "' WHERE patient_id = " + std::to_string(patientId);
-    return executeQuery(query);
-}
-bool Database::getPatientById(int patientId, std::string &name, std::string &gender, int &age,
-                              float &weight, float &height, std::string &description)
-{
-    std::string query = "SELECT name, gender, age, weight, height, description FROM patients WHERE patient_id = " +
-                        std::to_string(patientId);
 
-    auto patientCallback = [](void *data, int argc, char **argv, char **azColName) -> int
-    {
-        std::string *name = static_cast<std::string *>(data);
-        std::string *gender = static_cast<std::string *>(data + sizeof(std::string));
-        int *age = static_cast<int *>(data + 2 * sizeof(std::string));
-        float *weight = static_cast<float *>(data + 2 * sizeof(std::string) + sizeof(int));
-        float *height = static_cast<float *>(data + 2 * sizeof(std::string) + sizeof(int) + sizeof(float));
-        std::string *description = static_cast<std::string *>(data + 2 * sizeof(std::string) + sizeof(int) + 2 * sizeof(float));
-
-        if (argc > 0 && argv[0])
-        {
-            *name = argv[0];
-        }
-        if (argc > 1 && argv[1])
-        {
-            *gender = argv[1];
-        }
-        if (argc > 2 && argv[2])
-        {
-            *age = std::stoi(argv[2]);
-        }
-        if (argc > 3 && argv[3])
-        {
-            *weight = std::stof(argv[3]);
-        }
-        if (argc > 4 && argv[4])
-        {
-            *height = std::stof(argv[4]);
-        }
-        if (argc > 5 && argv[5])
-        {
-            *description = argv[5];
-        }
-        return 0;
-    };
-    std::string data[6];
-    std::string *namePtr = &data[0];
-    std::string *genderPtr = &data[1];
-    int *agePtr = reinterpret_cast<int *>(&data[2]);
-    float *weightPtr = reinterpret_cast<float *>(&data[3]);
-    float *heightPtr = reinterpret_cast<float *>(&data[4]);
-    std::string *descriptionPtr = &data[5];
-
-    executeQueryWithCallback(query, patientCallback, namePtr);
-
-    name = *namePtr;
-    gender = *genderPtr;
-    age = *agePtr;
-    weight = *weightPtr;
-    height = *heightPtr;
-    description = *descriptionPtr;
-
-    return true;
-}
-std::tuple<std::string, std::string, int, float, float, std::string> Database::fetchpatient(int patientId)
-{
-    std::string query = "SELECT name, gender, age, weight, height, description FROM patients WHERE patient_id = " +
-                        std::to_string(patientId);
-
-    auto patientCallback = [](void *data, int argc, char **argv, char **azColName) -> int
-    {
-        std::string *name = static_cast<std::string *>(data);
-        std::string *gender = static_cast<std::string *>(data + sizeof(std::string));
-        int *age = static_cast<int *>(data + 2 * sizeof(std::string));
-        float *weight = static_cast<float *>(data + 2 * sizeof(std::string) + sizeof(int));
-        float *height = static_cast<float *>(data + 2 * sizeof(std::string) + sizeof(int) + sizeof(float));
-        std::string *description = static_cast<std::string *>(data + 2 * sizeof(std::string) + sizeof(int) + 2 * sizeof(float));
-
-        if (argc > 0 && argv[0])
-        {
-            *name = argv[0];
-        }
-        if (argc > 1 && argv[1])
-        {
-            *gender = argv[1];
-        }
-        if (argc > 2 && argv[2])
-        {
-            *age = std::stoi(argv[2]);
-        }
-        if (argc > 3 && argv[3])
-        {
-            *weight = std::stof(argv[3]);
-        }
-        if (argc > 4 && argv[4])
-        {
-            *height = std::stof(argv[4]);
-        }
-        if (argc > 5 && argv[5])
-        {
-            *description = argv[5];
-        }
-        return 0;
-    };
-    std::string data[6];
-    std::string *namePtr = &data[0];
-    std::string *genderPtr = &data[1];
-    int *agePtr = reinterpret_cast<int *>(&data[2]);
-    float *weightPtr = reinterpret_cast<float *>(&data[3]);
-    float *heightPtr = reinterpret_cast<float *>(&data[4]);
-    std::string *descriptionPtr = &data[5];
-
-    executeQueryWithCallback(query, patientCallback, namePtr);
-
-    return std::make_tuple(*namePtr, *genderPtr, *agePtr, *weightPtr, *heightPtr, *descriptionPtr);
-}
 bool Database::getAllPatients(int (*callback)(void*, int, char**, char**))
 {
     std::string query = "SELECT name, gender, patient_id, age, weight, height, description FROM patients";
     return executeQueryWithCallback(query, callback, nullptr);
 }
-
-
-
-
-
-
-
-
-
-
-

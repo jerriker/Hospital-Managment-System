@@ -30,12 +30,8 @@ public:
     // Patient management
     bool addPatient(int patientId, const std::string& name, const std::string& gender, int age, 
                    float weight, float height, const std::string& description);
-    bool updatePatient(int patientId, const std::string& name, const std::string& gender, int age, 
-                      float weight, float height, const std::string& description);
-    bool getPatientById(int patientId, std::string& name, std::string& gender, int& age, 
-                       float& weight, float& height, std::string& description);
     bool getAllPatients(int (*callback)(void*, int, char**, char**)); // Add this to your public methods
-    std::tuple<std::string, std::string, int, float, float, std::string> fetchpatient(int patientId);     // Add this to your public methods
+    // Add this to your public methods
     
     // Appointment management
     bool initializeAppointmentSlots();
