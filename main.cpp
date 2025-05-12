@@ -7,7 +7,7 @@
  * 4. Barok Yeshiber     ID: ETS0224/16
  * 5. Addisalem Hailay   ID: ETS0100/16
  * 6. Bethelhem Degefu   ID: ETS0283/16
- * 
+
 
  */
 #include<iostream>
