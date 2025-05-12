@@ -187,11 +187,9 @@ a:
 }
 
 // Function to authenticate a user
-bool authenticate(int userId, const string &password)
-{
+bool authenticate(int userId, const string &password) {
     // Make sure the database is open
-    if (!g_db || !g_db->open())
-    {
+    if (!g_db || !g_db->open()) {
         cout << "Error: Database connection failed. Please try again later.\n";
         return false;
     }
@@ -204,6 +202,7 @@ void loginUser()
 {
     int userId;
     string password;
+    string role = "";
 b:
     cout << "Enter your User ID: ";
     cin >> userId;
@@ -227,9 +226,9 @@ c:
 
     if (authenticate(userId, password))
     {
-        string role = userCredentials[userId].second.second;
-        cout << "Login successful! Welcome, " << userCredentials[userId].first << "!\n";
+        cout << "Login successful! Welcome, " << g_db->getUserName(userId) << "!\n";
 
+        string role = g_db->getUserRole(userId);
         if (role == "Admin")
         {
         d:
@@ -953,3 +952,5 @@ int main()
 
     return 0;
 }
+
+
