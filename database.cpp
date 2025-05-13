@@ -57,8 +57,7 @@ bool Database::open()
     success &= executeQuery("CREATE TABLE IF NOT EXISTS staff ("
                             "staff_id INTEGER PRIMARY KEY UNIQUE,"
                             "name TEXT UNIQUE NOT NULL,"
-                            "role TEXT NOT NULL,"
-                            "is_present BOOLEAN DEFAULT 0)");
+                            "role TEXT NOT NULL)");
 
     if (!success)
     {

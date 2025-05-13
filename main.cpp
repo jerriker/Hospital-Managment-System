@@ -10,8 +10,7 @@
  */
 
 #include <iostream>
-
-#include <unordered_map> // For storing user credentials and other mappings
+#include <vector>
 #include <string>
 #include <cctype>  // For character checks
 #include <iomanip> // For setw
@@ -79,12 +78,6 @@ Appointment appointments[daysInWeek][appointmentsPerDay];
 
 // structure for staff attendance
 const int MAX_STAFF = 10;
-struct Staff
-{
-    string name;
-    bool isPresent; // true = present, false = absent
-};
-
 int main()
 {
     // Initialize random seed
@@ -100,7 +93,7 @@ int main()
         delete g_db;
         return 1;
     }
-    // cout << "Database opened successfully!" << endl;
+     //cout << "Database opened successfully!" << endl;
 
     // Initialize appointment slots
     initialSlots();
@@ -194,12 +187,11 @@ void initialSlots()
 // Generates a random ID for the patient between 1-9999
 int idGenerator()
 {
-    return rand() % 10000 + 1;
+    return rand() % 9000 + 1000; // Generates a random number between 1000 and 9999
 }
 
 // Functions used in user authentication
 //  A map to store user credentials (ID, Password, Name, Role)
-unordered_map<int, pair<string, pair<string, string>>> userCredentials; // User ID -> {Name, {Password, Role}}
 
 // Function to check if the password is strong
 bool isStrongPassword(const string &password)
@@ -372,7 +364,7 @@ void adminPanel()
     do
     {
         cout << "\n==Welcome to the Admin Panel. (Admin functionality goes here)====";
-        cout << "\n\t\t1. Patient Management   \n\t\t2. Staff Attendance   \n\t\t3. Display Booked Appointments  \n\t\t4. Back to main menu";
+        cout << "\n\t\t1. Patient Management   \n\t\t2. Staff management  \n\t\t3. Display Booked Appointments  \n\t\t4. Back to main menu";
 
     a:
         cout << "\n\t\tEnter your choice: ";
@@ -641,9 +633,7 @@ void staffManagement()
     {
         int id;
         std::string name;
-        bool isPresent;
     };
-    bool status;
     do
     {
         cout << setfill('=') << setw(displayWidth) << "=" << endl;
@@ -679,33 +669,6 @@ void staffManagement()
         }
     } while (choice != 4);
 }
-
-// Function to display all booked appointments for the admin
-void displayBookedAppointments()
-{
-    cout << "\n=============Booked Appointments=============\n\n";
-    bool found = false;
-
-    for (int day = 0; day < daysInWeek; ++day)
-    {
-        for (int slot = 0; slot < appointmentsPerDay; ++slot)
-        {
-            if (slots[day][slot] != "Available") // If the slot is booked
-            {
-                found = true;
-                cout << "\t\tDay: " << daysOfWeek[day] << "\n";
-                cout << "\t\tTime: " << times[slot] << "\n";
-                cout << "\t\tAppointment ID: " << appointments[day][slot].id << "\n\n";
-            }
-        }
-    }
-
-    if (!found)
-    {
-        cout << "No appointments are booked yet.\n";
-    }
-}
-
 // Function to handle patient functionality
 void patientPanel()
 {
